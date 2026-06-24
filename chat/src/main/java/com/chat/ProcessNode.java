@@ -4,16 +4,16 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Queue;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 class ProcessNode extends Thread {
 
     private NodeConfig processConfig;
     private ServerSocket server;
+    private AtomicLong rg;
     private Map<String,ChatMessage> holdBackQueue = new ConcurrentHashMap<>();
     private Map<Long,OrderMessage> orderQueue = new ConcurrentHashMap<>();
     private final Scanner scan = new Scanner(System.in);
@@ -21,9 +21,37 @@ class ProcessNode extends Thread {
     public ProcessNode(NodeConfig process) throws IOException {
 
         this.server = new ServerSocket(process.getPort());
+        this.rg = new AtomicLong(1);
         this.processConfig = process;
         start();
 
+    }
+
+    public void refreshMessages(){
+
+        while(true){
+
+            if (!orderQueue.isEmpty()){
+
+                OrderMessage order = orderQueue.get(rg.get());
+
+                if(order != null){
+
+                    ChatMessage chatMessage = holdBackQueue.get(order.getMessageId());
+
+                    if(chatMessage != null){
+
+                        holdBackQueue.remove(order.getMessageId());
+                        orderQueue.remove(order.getSequenceNumber());
+
+                        System.out.println(chatMessage.getSender()+": "+chatMessage.getContent());
+
+                        rg.incrementAndGet();
+
+                    }
+                }
+            }
+        }
     }
 
     public void bDeliver(Socket client) {
@@ -31,7 +59,20 @@ class ProcessNode extends Thread {
         try {
 
             ObjectInputStream in = new ObjectInputStream(client.getInputStream());
-            ChatMessage chatMessage = (ChatMessage) in.readObject();
+            Object obj = in.readObject();
+
+            if(obj instanceof ChatMessage){
+
+                ChatMessage chatMessage = (ChatMessage) obj;
+                holdBackQueue.put(chatMessage.getId(), chatMessage);
+
+            }else if( obj instanceof OrderMessage){
+
+                OrderMessage orderMessage = (OrderMessage) obj;
+                orderQueue.put(orderMessage.getSequenceNumber(),orderMessage);
+
+            }
+
             client.close();
 
         } catch (ClassNotFoundException | IOException e) {
@@ -42,38 +83,39 @@ class ProcessNode extends Thread {
 
     public void bMulticast(ChatMessage message){
 
-        try{
+        for(NodeConfig process: NodeConfig.values()){
 
-            for(NodeConfig process: NodeConfig.values()){
+            try(Socket socket = new Socket(process.getHost(), process.getPort());){
 
-                Socket socket = new Socket(process.getHost(), process.getPort());
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
                 out.writeObject(message);
                 out.flush();
-                out.close();
-                socket.close();
+
+            } catch (UnknownHostException e) {
+
+                throw new RuntimeException(e);
+
+            } catch (IOException e) {
+
+                System.out.println("Não foi possível conectar ao processo destino.");
 
             }
 
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            System.out.println("Não foi possível conectar ao processo destino.");
         }
 
     }
 
     public void listenToKeyboard(){
 
-        System.out.println("Chat Iniciado! Digite suas mensagens abaixo:");
+        System.out.println("Chat Iniciado!");
 
         while (true) {
 
             System.out.print(processConfig.getId() + ": ");
             String contentMessage = scan.nextLine();
 
-            if (contentMessage.equalsIgnoreCase("sair")) {
+            if (contentMessage.equalsIgnoreCase("Close Chat")) {
                 break;
             }
 
@@ -92,16 +134,10 @@ class ProcessNode extends Thread {
 
                 Socket client = server.accept();
 
-                new Thread(() -> {
-
-                    bDeliver(client);
-
-                }).start();
+                bDeliver(client);
 
             } catch (IOException e) {
-
-                e.printStackTrace();
-
+                throw new RuntimeException(e);
             }
 
         }
@@ -112,13 +148,11 @@ class ProcessNode extends Thread {
     @Override
     public void run() {
 
-        new Thread(() -> {
-            listenToKeyboard();
-        }).start();
+        new Thread(this::refreshMessages).start();
 
-        new Thread(() -> {
-            listenMessages();
-        }).start();
+        new Thread(this::listenMessages).start();
+
+        new Thread(this::listenToKeyboard).start();
 
     }
 

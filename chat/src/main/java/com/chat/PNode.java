@@ -2,13 +2,13 @@ package com.chat;
 
 import java.io.IOException;
 
-class Main {
+class PNode {
 
     public static void main(String[] args) {
 
         try {
 
-            ProcessNode lamport = new ProcessNode(NodeConfig.valueOf(args[0]));
+            ProcessNode process = new ProcessNode(NodeConfig.valueOf(args[0]));
 
         } catch (IOException e) {
 

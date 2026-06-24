@@ -6,12 +6,12 @@ import java.util.UUID;
 public class ChatMessage implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private String senderId;
+    private String sender;
     private String id;
     private String content;
 
-    public ChatMessage(String senderId, String content) {
-        this.senderId = senderId;
+    public ChatMessage(String sender, String content) {
+        this.sender = sender;
         this.id = UUID.randomUUID().toString();
         this.content = content;
     }
@@ -24,12 +24,12 @@ public class ChatMessage implements Serializable {
         this.id = id;
     }
 
-    public String getSenderId() {
-        return senderId;
+    public String getSender() {
+        return sender;
     }
 
     public void setSenderId(String senderId) {
-        this.senderId = senderId;
+        this.sender = sender;
     }
 
     public String getContent() {

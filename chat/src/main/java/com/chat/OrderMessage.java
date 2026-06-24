@@ -5,18 +5,12 @@ import java.io.Serializable;
 public class OrderMessage implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private String senderId;
     private final String messageId;
     private final long sequenceNumber;
 
-    public OrderMessage(String senderId, String messageId, long sequenceNumber) {
-        this.senderId = senderId;
+    public OrderMessage(String messageId, long sequenceNumber) {
         this.messageId = messageId;
         this.sequenceNumber = sequenceNumber;
-    }
-
-    public String getSenderId() {
-        return senderId;
     }
 
     public String getMessageId() {
