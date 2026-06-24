@@ -7,6 +7,8 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 class ProcessNode extends Thread {
@@ -17,6 +19,8 @@ class ProcessNode extends Thread {
     private Map<String,ChatMessage> holdBackQueue = new ConcurrentHashMap<>();
     private Map<Long,OrderMessage> orderQueue = new ConcurrentHashMap<>();
     private final Scanner scan = new Scanner(System.in);
+    private ExecutorService sendPool = Executors.newFixedThreadPool(3);
+    private ExecutorService receivePool = Executors.newFixedThreadPool(3);
 
     public ProcessNode(NodeConfig process) throws IOException {
 
@@ -85,20 +89,28 @@ class ProcessNode extends Thread {
 
         for(NodeConfig process: NodeConfig.values()){
 
-            try(Socket socket = new Socket(process.getHost(), process.getPort());){
+            if(!processConfig.equals(process)){
 
-                ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                sendPool.submit(() -> {
 
-                out.writeObject(message);
-                out.flush();
+                    try(Socket socket = new Socket(process.getHost(), process.getPort())){
 
-            } catch (UnknownHostException e) {
+                        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
-                throw new RuntimeException(e);
+                        out.writeObject(message);
+                        out.flush();
 
-            } catch (IOException e) {
+                    } catch (UnknownHostException e) {
 
-                System.out.println("Não foi possível conectar ao processo destino.");
+                        throw new RuntimeException(e);
+
+                    } catch (IOException e) {
+
+                        System.out.println("Não foi possível conectar ao processo destino.");
+
+                    }
+
+                });
 
             }
 
@@ -134,7 +146,7 @@ class ProcessNode extends Thread {
 
                 Socket client = server.accept();
 
-                bDeliver(client);
+                receivePool.submit(() -> bDeliver(client));
 
             } catch (IOException e) {
                 throw new RuntimeException(e);
