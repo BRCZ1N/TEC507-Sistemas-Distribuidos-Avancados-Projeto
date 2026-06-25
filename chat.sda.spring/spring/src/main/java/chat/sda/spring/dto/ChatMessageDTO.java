@@ -1,6 +1,3 @@
-package com.chat;
-
-import java.io.Serializable;
 import java.util.UUID;
 
 public class ChatMessageDTO {
