@@ -7,32 +7,33 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class GroupService {
 
-    private final ArrayList<Node> group;
+    private final Map<String,Node> group;
     private final NodeConfig nodeConfig;
 
     public GroupService(NodeConfig nodeConfig) {
 
-        this.group =  new ArrayList<>();
+        this.group = new ConcurrentHashMap<>();
         this.nodeConfig = nodeConfig;
-        this.group.add(nodeConfig.getSelf());
+        this.group.put(nodeConfig.getSelf().getId(), nodeConfig.getSelf());
 
     }
 
-    public synchronized void join(Node node) {
+    public void join(Node node) {
 
-        boolean exists = group.stream().anyMatch(n -> n.getId().equals(node.getId()));
+        if(!group.containsKey(node.getId())){
 
-        if (!exists) {
-            group.add(node);
+            group.put(node.getId(), node);
+
         }
 
-        List<Node> currentGroup = new ArrayList<>(group);
 
-        for (Node currentNode : currentGroup) {
+        for (Node currentNode : group.values()) {
 
             if (currentNode.equals(nodeConfig.getSelf())) {
                 continue;
@@ -42,7 +43,7 @@ public class GroupService {
                     RestTemplate rest = new RestTemplate();
                     rest.postForEntity(
                             "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh",
-                            currentGroup,
+                            group.values(),
                             Void.class
                     );
 
@@ -53,7 +54,7 @@ public class GroupService {
         }
     }
 
-    public List<Node> getGroup() {
-        return new ArrayList<>(group);
+    public ArrayList<Node> getGroup() {
+        return new ArrayList<>(group.values());
     }
 }

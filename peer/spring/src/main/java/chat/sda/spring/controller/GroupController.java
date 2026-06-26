@@ -35,9 +35,9 @@ public class GroupController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ArrayList<Node>> refresh(@RequestBody ArrayList<Node> currentGroup) {
+    public ResponseEntity<ArrayList<Node>> refresh(@RequestBody ArrayList<Node> newGroup) {
         try {
-            groupService.refreshGroup(currentGroup);
+            groupService.refreshGroup(newGroup);
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -45,7 +45,7 @@ public class GroupController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Node>> getGroup() {
+    public ResponseEntity<ArrayList<Node>> getGroup() {
         return ResponseEntity.ok(groupService.getGroup());
     }
 }

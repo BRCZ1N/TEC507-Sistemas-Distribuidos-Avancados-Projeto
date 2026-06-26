@@ -19,7 +19,7 @@ import chat.sda.spring.utils.NodeConfig;
 @Service
 public class ChatService {
 
-    private AtomicLong rg;
+    private final AtomicLong rg;
     private final Map<String, ChatMessage> holdBackQueue;
     private final Map<Long, OrderMessage> orderQueue;
     private final Queue<ChatMessage> deliveredMessages;
@@ -71,8 +71,6 @@ public class ChatService {
     public ChatMessageDTO getMessage(){
 
         if(!deliveredMessages.isEmpty()){
-
-            System.out.println("Entrei aq");
 
             return new ChatMessageDTO(deliveredMessages.remove().getContent());
 
