@@ -55,10 +55,16 @@ public class ChatService {
         rg.incrementAndGet();
     }
 
-    public void chatDeliver(ChatMessage message){
+    public void multiCast(ChatMessage message){
 
         holdBackQueue.put(message.getId(), message);
         bMulticast(message);
+
+    }
+
+    public void bDeliver(ChatMessage message){
+
+        holdBackQueue.put(message.getId(), message);
 
     }
 
@@ -83,9 +89,9 @@ public class ChatService {
 
     public void bMulticast(ChatMessage message) {
 
-        ArrayList<Node> snapshot = new ArrayList<>(groupService.getGroup());
+        ArrayList<Node> currentGroup = new ArrayList<>(groupService.getGroup());
 
-        for (Node node : snapshot) {
+        for (Node node : currentGroup) {
 
             if (node.getId().equals(nodeConfig.getSelf().getId()))
                 continue;
@@ -95,13 +101,12 @@ public class ChatService {
                     RestTemplate rest = new RestTemplate();
 
                     rest.postForEntity(
-                            "http://" + node.getHost() + ":" + node.getPort() + "/chat",
+                            "http://" + node.getHost() + ":" + node.getPort() + "/chat/deliver",
                             message,
                             Void.class
                     );
 
                 } catch (Exception e) {
-                    System.out.println(e.getMessage());
                     System.out.println("Falha ao enviar para " + node.getId());
                 }
             }).start();

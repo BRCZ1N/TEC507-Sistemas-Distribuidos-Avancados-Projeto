@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,8 +30,7 @@ public class GroupService {
             group.put(node.getId(), node);
 
         }
-
-
+        
         for (Node currentNode : group.values()) {
 
             if (currentNode.equals(nodeConfig.getSelf())) {

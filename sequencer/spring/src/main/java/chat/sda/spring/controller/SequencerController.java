@@ -17,7 +17,7 @@ public class SequencerController {
         this.sequenceService = sequencerService;
     }
 
-    @PostMapping
+    @PostMapping("/deliver")
     public ResponseEntity<Void> requestOrder(@Valid @RequestBody ChatMessageDTO message) {
 
         try {

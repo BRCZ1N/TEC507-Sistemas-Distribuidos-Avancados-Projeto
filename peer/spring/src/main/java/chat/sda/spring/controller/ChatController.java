@@ -24,11 +24,25 @@ public class ChatController {
         this.nodeConfig = nodeConfig;
     }
 
-    @PostMapping
-    public ResponseEntity<Void> addChatMessage(@Valid @RequestBody ChatMessageDTO message) {
+    @PostMapping("/multicast")
+    public ResponseEntity<Void> multicast(@Valid @RequestBody ChatMessageDTO message) {
 
         try {
-            chatService.chatDeliver(new ChatMessage(nodeConfig.getSelf().getId(),message.getContent()));
+            chatService.multiCast(new ChatMessage(nodeConfig.getSelf().getId(),message.getContent()));
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } catch (IllegalArgumentException illegalArgumentException) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+    }
+
+    @PostMapping("/deliver")
+    public ResponseEntity<Void> deliver(@Valid @RequestBody ChatMessageDTO message) {
+
+        try {
+            chatService.bDeliver(new ChatMessage(nodeConfig.getSelf().getId(),message.getContent()));
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
