@@ -6,6 +6,9 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/chat/pom.xml" />
+        <option value="$PROJECT_DIR$/chat.sda.spring.sequencer/spring/pom.xml" />
+        <option value="$PROJECT_DIR$/peer/spring/pom.xml" />
+        <option value="$PROJECT_DIR$/sequencer/spring/pom.xml" />
       </list>
     </option>
   </component>

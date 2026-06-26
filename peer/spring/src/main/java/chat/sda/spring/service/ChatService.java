@@ -1,0 +1,113 @@
+package chat.sda.spring.service;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import chat.sda.spring.dto.ChatMessageDTO;
+import chat.sda.spring.model.ChatMessage;
+import chat.sda.spring.model.Node;
+import chat.sda.spring.model.OrderMessage;
+import chat.sda.spring.utils.NodeConfig;
+
+@Service
+public class ChatService {
+
+    private AtomicLong rg;
+    private final Map<String, ChatMessage> holdBackQueue;
+    private final Map<Long, OrderMessage> orderQueue;
+    private final Queue<ChatMessage> deliveredMessages;
+    private final NodeConfig nodeConfig;
+    private final GroupService groupService;
+
+    public ChatService(NodeConfig nodeConfig, GroupService groupService) {
+
+        this.rg = new AtomicLong(1);
+        this.holdBackQueue = new ConcurrentHashMap<>();
+        this.orderQueue = new ConcurrentHashMap<>();
+        this.deliveredMessages = new ConcurrentLinkedQueue<>();
+        this.nodeConfig = nodeConfig;
+        this.groupService = groupService;
+    }
+
+    @Scheduled(fixedDelay = 5)
+    public void refreshMessages() {
+
+        OrderMessage order = orderQueue.get(rg.get());
+
+        if (order == null) return;
+
+        ChatMessage message = holdBackQueue.get(order.getMessageId());
+
+        if (message == null) return;
+
+        holdBackQueue.remove(order.getMessageId());
+        orderQueue.remove(order.getSequenceNumber());
+
+        deliveredMessages.add(message);
+
+        rg.incrementAndGet();
+    }
+
+    public void chatDeliver(ChatMessage message){
+
+        holdBackQueue.put(message.getId(), message);
+        bMulticast(message);
+
+    }
+
+    public void orderDeliver(OrderMessage order){
+
+        orderQueue.put(order.getSequenceNumber(),order);
+
+    }
+
+    public ChatMessageDTO getMessage(){
+
+        if(!deliveredMessages.isEmpty()){
+
+            System.out.println("Entrei aq");
+
+            return new ChatMessageDTO(deliveredMessages.remove().getContent());
+
+        }
+
+        return null;
+
+    }
+
+
+    public void bMulticast(ChatMessage message) {
+
+        ArrayList<Node> snapshot = new ArrayList<>(groupService.getGroup());
+
+        for (Node node : snapshot) {
+
+            if (node.getId().equals(nodeConfig.getSelf().getId()))
+                continue;
+            new Thread(() -> {
+                try {
+
+                    RestTemplate rest = new RestTemplate();
+
+                    rest.postForEntity(
+                            "http://" + node.getHost() + ":" + node.getPort() + "/chat",
+                            message,
+                            Void.class
+                    );
+
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    System.out.println("Falha ao enviar para " + node.getId());
+                }
+            }).start();
+        }
+    }
+
+}
