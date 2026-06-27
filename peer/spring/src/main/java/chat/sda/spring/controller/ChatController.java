@@ -12,6 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Queue;
+
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping(value = "/chat")
@@ -66,10 +70,10 @@ public class ChatController {
     }
 
     @GetMapping
-    public ResponseEntity<ReceiveMessageDTO> getMessage() {
+    public ResponseEntity<Queue<ChatMessage>> getMessage() {
 
         try {
-            ReceiveMessageDTO message = chatService.getMessage();
+            Queue<ChatMessage> message = chatService.getMessages();
             if(message != null){
 
                 return ResponseEntity.ok(message);

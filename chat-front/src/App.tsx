@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Typography, Paper, TextField, Button } from "@mui/material";
 
+type Message = {
+    id: string;
+    senderId: string;
+    content: string;
+};
+
 export default function App() {
-    const [messages, setMessages] = useState<any[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [content, setContent] = useState("");
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -20,7 +26,9 @@ export default function App() {
         try {
             await fetch("http://localhost:7000/group/join", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
             });
         } catch (err) {
             console.log("join error:", err);
@@ -30,21 +38,14 @@ export default function App() {
     const fetchMessages = async () => {
         try {
             const res = await fetch("http://localhost:7000/chat");
+
             if (!res.ok) return;
 
-            const text = await res.text();
-            if (!text?.trim()) return;
+            const data = await res.json();
 
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch {
-                return;
-            }
+            if (!Array.isArray(data)) return;
 
-            if (!data?.senderId) return;
-
-            setMessages((prev) => [...prev, data]);
+            setMessages(data);
         } catch (err) {
             console.log("fetch error:", err);
         }
@@ -56,14 +57,19 @@ export default function App() {
         try {
             await fetch("http://localhost:7000/chat/multicast", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
+                    senderId,
                     content,
-                    senderId, // 👈 agora envia o guest id
                 }),
             });
 
             setContent("");
+
+            // Atualiza logo após enviar
+            fetchMessages();
         } catch (err) {
             console.log("send error:", err);
         }
@@ -74,11 +80,14 @@ export default function App() {
         fetchMessages();
 
         const interval = setInterval(fetchMessages, 1200);
+
         return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        bottomRef.current?.scrollIntoView({
+            behavior: "smooth",
+        });
     }, [messages]);
 
     return (
@@ -107,7 +116,7 @@ export default function App() {
             >
                 <Box
                     sx={{
-                        padding: 2,
+                        p: 2,
                         borderBottom: "1px solid #222",
                         background: "#1a1a1a",
                     }}
@@ -116,7 +125,13 @@ export default function App() {
                         Total Order Multicast Chat
                     </Typography>
 
-                    <Typography variant="caption" sx={{ color: "#888", display: "block" }}>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: "#888",
+                            display: "block",
+                        }}
+                    >
                         Logado como {senderId}
                     </Typography>
                 </Box>
@@ -125,21 +140,24 @@ export default function App() {
                     sx={{
                         flex: 1,
                         overflowY: "auto",
-                        padding: 2,
+                        p: 2,
                         display: "flex",
                         flexDirection: "column",
                         gap: 1.2,
                     }}
                 >
-                    {messages.map((msg, i) => (
+                    {messages.map((msg) => (
                         <Box
-                            key={`${msg.senderId}-${msg.content}-${i}`}
-                            sx={{ display: "flex", justifyContent: "flex-start" }}
+                            key={msg.id}
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-start",
+                            }}
                         >
                             <Box
                                 sx={{
                                     maxWidth: "75%",
-                                    padding: "10px 12px",
+                                    p: "10px 12px",
                                     borderRadius: 2,
                                     background: "#2a2a2a",
                                     color: "white",
@@ -148,13 +166,17 @@ export default function App() {
                             >
                                 <Typography
                                     variant="caption"
-                                    sx={{ opacity: 0.7, display: "block", mb: 0.5 }}
+                                    sx={{
+                                        opacity: 0.7,
+                                        display: "block",
+                                        mb: 0.5,
+                                    }}
                                 >
-                                    {msg?.senderId ?? "unknown"}
+                                    {msg.senderId}
                                 </Typography>
 
                                 <Typography variant="body2">
-                                    {msg?.content ?? ""}
+                                    {msg.content}
                                 </Typography>
                             </Box>
                         </Box>
@@ -163,12 +185,11 @@ export default function App() {
                     <div ref={bottomRef} />
                 </Box>
 
-                {/* Input */}
                 <Box
                     sx={{
                         display: "flex",
                         gap: 1,
-                        padding: 1.5,
+                        p: 1.5,
                         borderTop: "1px solid #222",
                         background: "#1a1a1a",
                     }}
@@ -177,18 +198,28 @@ export default function App() {
                         fullWidth
                         size="small"
                         value={content}
-                        onChange={(e) => setContent(e.target.value)}
                         placeholder="Digite uma mensagem..."
+                        onChange={(e) => setContent(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") sendMessage();
+                            if (e.key === "Enter") {
+                                sendMessage();
+                            }
                         }}
                         sx={{
-                            input: { color: "white" },
+                            input: {
+                                color: "white",
+                            },
                             "& .MuiOutlinedInput-root": {
                                 color: "white",
-                                "& fieldset": { borderColor: "#333" },
-                                "&:hover fieldset": { borderColor: "#555" },
-                                "&.Mui-focused fieldset": { borderColor: "#2563eb" },
+                                "& fieldset": {
+                                    borderColor: "#333",
+                                },
+                                "&:hover fieldset": {
+                                    borderColor: "#555",
+                                },
+                                "&.Mui-focused fieldset": {
+                                    borderColor: "#2563eb",
+                                },
                             },
                         }}
                     />

@@ -75,12 +75,11 @@ public class ChatService {
 
     }
 
-    public ReceiveMessageDTO getMessage(){
+    public Queue<ChatMessage> getMessages(){
 
         if(!deliveredMessages.isEmpty()){
 
-            ChatMessage currentMessage = deliveredMessages.remove();
-            return new ReceiveMessageDTO(currentMessage.getSenderId(), currentMessage.getContent());
+            return deliveredMessages;
 
         }
 
