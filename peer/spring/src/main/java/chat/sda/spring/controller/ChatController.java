@@ -7,7 +7,6 @@ import chat.sda.spring.dto.SendMessageDTO;
 import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.OrderMessage;
 import chat.sda.spring.service.ChatService;
-import chat.sda.spring.utils.NodeConfig;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,18 +18,16 @@ import org.springframework.web.bind.annotation.*;
 public class ChatController {
 
     private final ChatService chatService;
-    private final NodeConfig nodeConfig;
 
-    public ChatController(ChatService chatService, NodeConfig nodeConfig){
+    public ChatController(ChatService chatService){
         this.chatService = chatService;
-        this.nodeConfig = nodeConfig;
     }
 
     @PostMapping("/multicast")
     public ResponseEntity<Void> multicast(@Valid @RequestBody SendMessageDTO message) {
 
         try {
-            chatService.multiCast(new ChatMessage(nodeConfig.getSelf().getId(),message.getContent()));
+            chatService.multiCast(new ChatMessage(message.getSenderId(),message.getContent()));
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
