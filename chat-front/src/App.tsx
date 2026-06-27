@@ -24,7 +24,7 @@ export default function App() {
 
     const joinGroup = async () => {
         try {
-            await fetch("http://localhost:7000/group/join", {
+            await fetch("http://localhost:8000/group/join", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -37,7 +37,7 @@ export default function App() {
 
     const fetchMessages = async () => {
         try {
-            const res = await fetch("http://localhost:7000/chat");
+            const res = await fetch("http://localhost:8000/chat");
 
             if (!res.ok) return;
 
@@ -55,7 +55,7 @@ export default function App() {
         if (!content.trim()) return;
 
         try {
-            await fetch("http://localhost:7000/chat/multicast", {
+            await fetch("http://localhost:8000/chat/multicast", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -68,7 +68,6 @@ export default function App() {
 
             setContent("");
 
-            // Atualiza logo após enviar
             fetchMessages();
         } catch (err) {
             console.log("send error:", err);

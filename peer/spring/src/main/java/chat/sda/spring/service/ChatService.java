@@ -24,7 +24,6 @@ public class ChatService {
     private final Map<String, ChatMessage> holdBackQueue;
     private final Map<Long, OrderMessage> orderQueue;
     private final Queue<ChatMessage> deliveredMessages;
-    private final NodeConfig nodeConfig;
     private final GroupService groupService;
 
     public ChatService(NodeConfig nodeConfig, GroupService groupService) {
@@ -33,45 +32,45 @@ public class ChatService {
         this.holdBackQueue = new ConcurrentHashMap<>();
         this.orderQueue = new ConcurrentHashMap<>();
         this.deliveredMessages = new ConcurrentLinkedQueue<>();
-        this.nodeConfig = nodeConfig;
         this.groupService = groupService;
     }
 
-    @Scheduled(fixedDelay = 5)
-    public void refreshMessages() {
+    public synchronized void refreshMessages() {
 
-        OrderMessage order = orderQueue.get(rg.get());
+        while (orderQueue.containsKey(rg.get())) {
 
-        if (order == null) return;
+            OrderMessage order = orderQueue.get(rg.get());
+            ChatMessage message = holdBackQueue.get(order.getMessageId());
 
-        ChatMessage message = holdBackQueue.get(order.getMessageId());
+            if (message == null) {
+                break;
+            }
 
-        if (message == null) return;
+            holdBackQueue.remove(order.getMessageId());
+            orderQueue.remove(rg.get());
+            deliveredMessages.add(message);
 
-        holdBackQueue.remove(order.getMessageId());
-        orderQueue.remove(order.getSequenceNumber());
-
-        deliveredMessages.add(message);
-
-        rg.incrementAndGet();
+            rg.incrementAndGet();
+        }
     }
 
     public void multiCast(ChatMessage message){
 
-        holdBackQueue.put(message.getId(), message);
         bMulticast(message);
 
     }
 
-    public void bDeliver(ChatMessage message){
+    public synchronized void bDeliver(ChatMessage message){
 
         holdBackQueue.put(message.getId(), message);
+        refreshMessages();
 
     }
 
-    public void orderDeliver(OrderMessage order){
+    public synchronized void orderDeliver(OrderMessage order){
 
         orderQueue.put(order.getSequenceNumber(),order);
+        refreshMessages();
 
     }
 
@@ -94,8 +93,6 @@ public class ChatService {
 
         for (Node node : currentGroup) {
 
-            if (node.getId().equals(nodeConfig.getSelf().getId()))
-                continue;
             new Thread(() -> {
                 try {
 
