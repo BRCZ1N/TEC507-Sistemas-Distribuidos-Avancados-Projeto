@@ -6,10 +6,13 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/chat/pom.xml" />
+        <option value="$PROJECT_DIR$/chat.sda.spring.sequencer/spring/pom.xml" />
+        <option value="$PROJECT_DIR$/peer/spring/pom.xml" />
+        <option value="$PROJECT_DIR$/sequencer/spring/pom.xml" />
       </list>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="openjdk-26" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_26" project-jdk-name="26" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
