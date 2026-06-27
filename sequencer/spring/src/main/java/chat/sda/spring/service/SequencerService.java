@@ -11,7 +11,7 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class SequencerService {
 
-    private AtomicLong sg;
+    private final AtomicLong sg;
     private final GroupService groupService;
     private final NodeConfig nodeConfig;
 

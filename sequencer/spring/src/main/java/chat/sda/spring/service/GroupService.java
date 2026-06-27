@@ -25,11 +25,7 @@ public class GroupService {
 
     public void join(Node node) {
 
-        if(!group.containsKey(node.getId())){
-
-            group.put(node.getId(), node);
-
-        }
+        group.putIfAbsent(node.getId(), node);
         
         for (Node currentNode : group.values()) {
 
@@ -41,7 +37,7 @@ public class GroupService {
                     RestTemplate rest = new RestTemplate();
                     rest.postForEntity(
                             "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh",
-                            group.values(),
+                            new ArrayList<>(group.values()),
                             Void.class
                     );
 

@@ -8,9 +8,15 @@ public class ChatMessage {
     private String id;
     private String content;
 
-    public ChatMessage(String sender, String content) {
-        this.senderId = sender;
+    public ChatMessage(String senderId, String content) {
+        this.senderId = senderId;
         this.id = UUID.randomUUID().toString();
+        this.content = content;
+    }
+
+    public ChatMessage(String senderId, String id, String content) {
+        this.senderId = senderId;
+        this.id = id;
         this.content = content;
     }
 

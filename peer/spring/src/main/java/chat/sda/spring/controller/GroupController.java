@@ -35,7 +35,7 @@ public class GroupController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ArrayList<Node>> refresh(@RequestBody ArrayList<Node> newGroup) {
+    public ResponseEntity<Void> refresh(@RequestBody ArrayList<Node> newGroup) {
         try {
             groupService.refreshGroup(newGroup);
             return ResponseEntity.status(HttpStatus.OK).build();

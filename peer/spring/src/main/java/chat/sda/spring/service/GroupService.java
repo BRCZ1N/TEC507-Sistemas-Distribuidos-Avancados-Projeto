@@ -45,11 +45,8 @@ public class GroupService {
 
         for (Node node : newGroup) {
 
-            if(!group.containsKey(node.getId())){
+            group.putIfAbsent(node.getId(), node);
 
-                group.put(node.getId(), node);
-
-            }
         }
     }
 

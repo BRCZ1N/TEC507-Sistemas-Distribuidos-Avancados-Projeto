@@ -2,6 +2,8 @@ package chat.sda.spring.controller;
 
 import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.dto.OrderMessageDTO;
+import chat.sda.spring.dto.ReceiveMessageDTO;
+import chat.sda.spring.dto.SendMessageDTO;
 import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.OrderMessage;
 import chat.sda.spring.service.ChatService;
@@ -25,7 +27,7 @@ public class ChatController {
     }
 
     @PostMapping("/multicast")
-    public ResponseEntity<Void> multicast(@Valid @RequestBody ChatMessageDTO message) {
+    public ResponseEntity<Void> multicast(@Valid @RequestBody SendMessageDTO message) {
 
         try {
             chatService.multiCast(new ChatMessage(nodeConfig.getSelf().getId(),message.getContent()));
@@ -42,7 +44,7 @@ public class ChatController {
     public ResponseEntity<Void> deliver(@Valid @RequestBody ChatMessageDTO message) {
 
         try {
-            chatService.bDeliver(new ChatMessage(nodeConfig.getSelf().getId(),message.getContent()));
+            chatService.bDeliver(new ChatMessage(message.getSenderId(),message.getId(),message.getContent()));
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
@@ -67,10 +69,16 @@ public class ChatController {
     }
 
     @GetMapping
-    public ResponseEntity<ChatMessageDTO> getMessage() {
+    public ResponseEntity<ReceiveMessageDTO> getMessage() {
 
         try {
-            return ResponseEntity.ok(chatService.getMessage());
+            ReceiveMessageDTO message = chatService.getMessage();
+            if(message != null){
+
+                return ResponseEntity.ok(message);
+
+            }
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
         } catch (Exception e) {

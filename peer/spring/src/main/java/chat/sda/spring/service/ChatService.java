@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import chat.sda.spring.dto.ReceiveMessageDTO;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -74,11 +75,12 @@ public class ChatService {
 
     }
 
-    public ChatMessageDTO getMessage(){
+    public ReceiveMessageDTO getMessage(){
 
         if(!deliveredMessages.isEmpty()){
 
-            return new ChatMessageDTO(deliveredMessages.remove().getContent());
+            ChatMessage currentMessage = deliveredMessages.remove();
+            return new ReceiveMessageDTO(currentMessage.getSenderId(), currentMessage.getContent());
 
         }
 
