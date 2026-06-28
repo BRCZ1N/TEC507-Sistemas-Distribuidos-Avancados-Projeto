@@ -1,8 +1,7 @@
 package chat.sda.spring.service;
-
-import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.utils.NodeConfig;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -16,11 +15,17 @@ public class GroupService {
     private final Map<String,Node> group;
     private final Node nodeSequencer;
     private final NodeConfig nodeConfig;
+    @Value("${sequencer.id}")
+    private String sequencerId;
+    @Value("${sequencer.host}")
+    private String sequencerHost;
+    @Value("${sequencer.port}")
+    private int sequencerPort;
 
     public GroupService(NodeConfig nodeConfig) {
 
         this.group = new ConcurrentHashMap<>();
-        this.nodeSequencer = new Node("P1", "localhost", 6000);
+        this.nodeSequencer = new Node(sequencerId, sequencerHost, sequencerPort);
         this.nodeConfig = nodeConfig;
     }
 

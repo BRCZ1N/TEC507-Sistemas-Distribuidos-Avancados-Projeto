@@ -2,7 +2,6 @@ package chat.sda.spring.controller;
 
 import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.dto.OrderMessageDTO;
-import chat.sda.spring.dto.ReceiveMessageDTO;
 import chat.sda.spring.dto.SendMessageDTO;
 import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.OrderMessage;
@@ -11,9 +10,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Queue;
 
 @CrossOrigin(origins = "*")

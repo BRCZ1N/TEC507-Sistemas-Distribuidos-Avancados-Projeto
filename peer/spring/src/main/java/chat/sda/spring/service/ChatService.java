@@ -5,13 +5,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-
-import chat.sda.spring.dto.ReceiveMessageDTO;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.model.OrderMessage;

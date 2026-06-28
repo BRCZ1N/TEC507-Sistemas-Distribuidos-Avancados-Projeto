@@ -1,9 +1,13 @@
 package chat.sda.spring.utils;
 
 import chat.sda.spring.model.Node;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.server.context.WebServerInitializedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 @Component
 public class NodeConfig {
@@ -11,17 +15,21 @@ public class NodeConfig {
     @Value("${node.id}")
     private String id;
 
-    @Value("${node.host}")
+    @Value("${node.host:}")
     private String host;
-
-    @Value("${server.port}")
-    private int port;
 
     private Node self;
 
-    @PostConstruct
-    public void init() {
-        this.self = new Node(id, host, port);
+    @EventListener(WebServerInitializedEvent.class)
+    public void onWebServerReady(WebServerInitializedEvent event) throws UnknownHostException {
+
+        int port = event.getWebServer().getPort();
+
+        if (host == null || host.isBlank()) {
+            host = InetAddress.getLocalHost().getHostAddress();
+        }
+
+        self = new Node(id, host, port);
     }
 
     public Node getSelf() {
