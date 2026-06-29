@@ -7,8 +7,18 @@ type Message = {
     content: string;
 };
 
+type Peer = {
+    id: string;
+    host: string;
+    port: number;
+};
+
+const SEQUENCER_URL = "http://localhost:60000";
+
 export default function App() {
     const [messages, setMessages] = useState<Message[]>([]);
+    const [peers, setPeers] = useState<Peer[]>([]);
+    const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
     const [content, setContent] = useState("");
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -22,52 +32,64 @@ export default function App() {
         return id;
     });
 
-    const joinGroup = async () => {
+    const getPeers = async () => {
         try {
-            await fetch("http://localhost:8000/group/join", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
+            const res = await fetch(`${SEQUENCER_URL}/group`);
+            const data = await res.json();
+
+            if (Array.isArray(data)) {
+                const filtered = data.filter((p) => p.port !== 60000);
+
+                setPeers(filtered);
+
+                if (!selectedPeer && filtered.length > 0) {
+                    setSelectedPeer(filtered[0]);
+                }
+            }
         } catch (err) {
-            console.log("join error:", err);
+            console.log("Erro getPeers:", err);
         }
     };
 
     const fetchMessages = async () => {
+        if (!selectedPeer) return;
+
         try {
-            const res = await fetch("http://localhost:8000/chat");
+            const res = await fetch(
+                `http://${selectedPeer.host}:${selectedPeer.port}/chat`
+            );
 
             if (!res.ok) return;
 
             const data = await res.json();
 
-            if (!Array.isArray(data)) return;
-
-            setMessages(data);
+            if (Array.isArray(data)) {
+                setMessages(data);
+            }
         } catch (err) {
             console.log("fetch error:", err);
         }
     };
 
     const sendMessage = async () => {
-        if (!content.trim()) return;
+        if (!content.trim() || !selectedPeer) return;
 
         try {
-            await fetch("http://localhost:8000/chat/multicast", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    senderId,
-                    content,
-                }),
-            });
+            await fetch(
+                `http://${selectedPeer.host}:${selectedPeer.port}/chat/multicast`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        senderId,
+                        content,
+                    }),
+                }
+            );
 
             setContent("");
-
             fetchMessages();
         } catch (err) {
             console.log("send error:", err);
@@ -75,18 +97,20 @@ export default function App() {
     };
 
     useEffect(() => {
-        joinGroup();
-        fetchMessages();
-
-        const interval = setInterval(fetchMessages, 1200);
-
-        return () => clearInterval(interval);
+        getPeers();
     }, []);
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({
-            behavior: "smooth",
-        });
+        if (!selectedPeer) return;
+
+        fetchMessages();
+        const interval = setInterval(fetchMessages, 1200);
+
+        return () => clearInterval(interval);
+    }, [selectedPeer]);
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     return (
@@ -95,147 +119,160 @@ export default function App() {
                 height: "100vh",
                 width: "100vw",
                 display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
                 background: "linear-gradient(180deg, #0b0b0b, #151515)",
             }}
         >
-            <Paper
-                elevation={10}
+            {/* SIDEBAR */}
+            <Box
                 sx={{
-                    width: "100%",
-                    maxWidth: 720,
-                    height: "90vh",
-                    display: "flex",
-                    flexDirection: "column",
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    background: "#121212",
+                    width: 220,
+                    borderRight: "1px solid #222",
+                    background: "#0f0f0f",
+                    p: 2,
+                    color: "white",
                 }}
             >
-                <Box
-                    sx={{
-                        p: 2,
-                        borderBottom: "1px solid #222",
-                        background: "#1a1a1a",
-                    }}
-                >
-                    <Typography variant="caption" sx={{ color: "#fff" }}>
-                        Total Order Multicast Chat
-                    </Typography>
+                <Typography variant="caption">
+                    Peers Online
+                </Typography>
 
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            color: "#888",
-                            display: "block",
-                        }}
-                    >
-                        Logado como {senderId}
-                    </Typography>
-                </Box>
-
-                <Box
-                    sx={{
-                        flex: 1,
-                        overflowY: "auto",
-                        p: 2,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 1.2,
-                    }}
-                >
-                    {messages.map((msg) => (
+                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                    {peers.map((p) => (
                         <Box
-                            key={msg.id}
+                            key={p.id}
+                            onClick={() => setSelectedPeer(p)}
                             sx={{
-                                display: "flex",
-                                justifyContent: "flex-start",
+                                p: 1,
+                                cursor: "pointer",
+                                borderRadius: 1,
+                                background:
+                                    selectedPeer?.id === p.id
+                                        ? "#2563eb"
+                                        : "#1a1a1a",
+                                "&:hover": { opacity: 0.8 },
                             }}
                         >
-                            <Box
-                                sx={{
-                                    maxWidth: "75%",
-                                    p: "10px 12px",
-                                    borderRadius: 2,
-                                    background: "#2a2a2a",
-                                    color: "white",
-                                    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                                }}
-                            >
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        opacity: 0.7,
-                                        display: "block",
-                                        mb: 0.5,
-                                    }}
-                                >
-                                    {msg.senderId}
-                                </Typography>
-
-                                <Typography variant="body2">
-                                    {msg.content}
-                                </Typography>
-                            </Box>
+                            <Typography variant="caption">
+                                {p.id}
+                            </Typography>
                         </Box>
                     ))}
-
-                    <div ref={bottomRef} />
                 </Box>
+            </Box>
 
-                <Box
+            {/* CHAT */}
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <Paper
+                    elevation={10}
                     sx={{
+                        width: "100%",
+                        maxWidth: 720,
+                        height: "90vh",
                         display: "flex",
-                        gap: 1,
-                        p: 1.5,
-                        borderTop: "1px solid #222",
-                        background: "#1a1a1a",
+                        flexDirection: "column",
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        background: "#121212",
                     }}
                 >
-                    <TextField
-                        fullWidth
-                        size="small"
-                        value={content}
-                        placeholder="Digite uma mensagem..."
-                        onChange={(e) => setContent(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                sendMessage();
-                            }
-                        }}
-                        sx={{
-                            input: {
-                                color: "white",
-                            },
-                            "& .MuiOutlinedInput-root": {
-                                color: "white",
-                                "& fieldset": {
-                                    borderColor: "#333",
-                                },
-                                "&:hover fieldset": {
-                                    borderColor: "#555",
-                                },
-                                "&.Mui-focused fieldset": {
-                                    borderColor: "#2563eb",
-                                },
-                            },
-                        }}
-                    />
+                    {/* HEADER */}
+                    <Box sx={{ p: 2, borderBottom: "1px solid #222" }}>
+                        <Typography variant="caption" sx={{ color: "#fff" }}>
+                            Total Order Multicast Chat
+                        </Typography>
 
-                    <Button
-                        variant="contained"
-                        onClick={sendMessage}
+                        <Typography variant="caption" sx={{ color: "#888", display: "block" }}>
+                            Usuário: {senderId}
+                        </Typography>
+
+                        <Typography variant="caption" sx={{ color: "#888", display: "block" }}>
+                            Peer: {selectedPeer?.id ?? "nenhum"}
+                        </Typography>
+                    </Box>
+
+                    {/* MESSAGES */}
+                    <Box
                         sx={{
-                            background: "#2563eb",
-                            textTransform: "none",
-                            px: 3,
+                            flex: 1,
+                            overflowY: "auto",
+                            p: 2,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1.2,
                         }}
                     >
-                        Send
-                    </Button>
-                </Box>
-            </Paper>
+                        {messages.map((msg) => (
+                            <Box key={msg.id} sx={{ display: "flex" }}>
+                                <Box
+                                    sx={{
+                                        maxWidth: "75%",
+                                        p: "10px 12px",
+                                        borderRadius: 2,
+                                        background: "#2a2a2a",
+                                        color: "white",
+                                    }}
+                                >
+                                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                        {msg.senderId}
+                                    </Typography>
+
+                                    <Typography variant="body2">
+                                        {msg.content}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        ))}
+
+                        <div ref={bottomRef} />
+                    </Box>
+
+                    {/* INPUT */}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            gap: 1,
+                            p: 1.5,
+                            borderTop: "1px solid #222",
+                            background: "#1a1a1a",
+                        }}
+                    >
+                        <TextField
+                            fullWidth
+                            size="small"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") sendMessage();
+                            }}
+                            sx={{
+                                input: { color: "white" },
+                                "& .MuiOutlinedInput-root": {
+                                    color: "white",
+                                    "& fieldset": { borderColor: "#333" },
+                                },
+                            }}
+                        />
+
+                        <Button
+                            variant="contained"
+                            onClick={sendMessage}
+                            sx={{
+                                background: "#2563eb",
+                                textTransform: "none",
+                            }}
+                        >
+                            Send
+                        </Button>
+                    </Box>
+                </Paper>
+            </Box>
         </Box>
     );
 }
