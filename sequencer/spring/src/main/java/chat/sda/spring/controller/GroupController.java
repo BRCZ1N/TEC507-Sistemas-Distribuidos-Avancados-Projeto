@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping(value = "/group")
 public class GroupController {
@@ -23,7 +24,6 @@ public class GroupController {
     public ResponseEntity<Void> join(@Valid @RequestBody Node node) {
 
         try {
-
             groupService.join(node);
             return ResponseEntity.status(HttpStatus.OK).build();
 

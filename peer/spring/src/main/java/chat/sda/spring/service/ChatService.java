@@ -6,12 +6,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import chat.sda.spring.dto.ReceiveMessageDTO;
-import org.springframework.scheduling.annotation.Scheduled;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.model.OrderMessage;
@@ -24,8 +23,8 @@ public class ChatService {
     private final Map<String, ChatMessage> holdBackQueue;
     private final Map<Long, OrderMessage> orderQueue;
     private final Queue<ChatMessage> deliveredMessages;
-    private final NodeConfig nodeConfig;
     private final GroupService groupService;
+    private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     public ChatService(NodeConfig nodeConfig, GroupService groupService) {
 
@@ -33,58 +32,55 @@ public class ChatService {
         this.holdBackQueue = new ConcurrentHashMap<>();
         this.orderQueue = new ConcurrentHashMap<>();
         this.deliveredMessages = new ConcurrentLinkedQueue<>();
-        this.nodeConfig = nodeConfig;
         this.groupService = groupService;
     }
 
-    @Scheduled(fixedDelay = 5)
-    public void refreshMessages() {
+    public synchronized void refreshMessages() {
 
-        OrderMessage order = orderQueue.get(rg.get());
+        while (orderQueue.containsKey(rg.get())) {
 
-        if (order == null) return;
+            OrderMessage order = orderQueue.get(rg.get());
+            ChatMessage message = holdBackQueue.get(order.getMessageId());
 
-        ChatMessage message = holdBackQueue.get(order.getMessageId());
+            if (message == null) {
+                break;
+            }
 
-        if (message == null) return;
-
-        holdBackQueue.remove(order.getMessageId());
-        orderQueue.remove(order.getSequenceNumber());
-
-        deliveredMessages.add(message);
-
-        rg.incrementAndGet();
+            ChatMessage currentTopMessage = holdBackQueue.remove(order.getMessageId());
+            OrderMessage currentTopOrderMessage = orderQueue.remove(rg.get());
+            log.info("Sequencia Local Atual(rg):{}", rg.get());
+            log.info("Mensagem - Id:{} - SenderId:{} - Conteudo:{}", currentTopMessage.getId(), currentTopMessage.getSenderId(), currentTopMessage.getContent());
+            log.info("Ordem - Message Id:{} - Sg:{}", currentTopOrderMessage.getMessageId(), currentTopOrderMessage.getSequenceNumber());
+            deliveredMessages.add(message);
+            log.info("Mensagem Liberada - Id:{} - SenderId:{} - Conteudo:{}", message.getId(), message.getSenderId(), message.getContent());
+            rg.incrementAndGet();
+            log.info("Nova Sequencia Local Atual(rg):{}", rg.get());
+        }
     }
 
     public void multiCast(ChatMessage message){
 
-        holdBackQueue.put(message.getId(), message);
         bMulticast(message);
 
     }
 
-    public void bDeliver(ChatMessage message){
+    public synchronized void bDeliver(ChatMessage message){
 
         holdBackQueue.put(message.getId(), message);
-
+        log.info("Mensagem armazenada - Id:{} - SenderId:{} - Conteudo:{}", message.getId(), message.getSenderId(), message.getContent());
+        refreshMessages();
     }
 
-    public void orderDeliver(OrderMessage order){
+    public synchronized void orderDeliver(OrderMessage order){
 
         orderQueue.put(order.getSequenceNumber(),order);
-
+        log.info("Ordem armazenada - Message Id:{} - SG:{}", order.getMessageId(), order.getSequenceNumber());
+        refreshMessages();
     }
 
-    public ReceiveMessageDTO getMessage(){
+    public Queue<ChatMessage> getMessages(){
 
-        if(!deliveredMessages.isEmpty()){
-
-            ChatMessage currentMessage = deliveredMessages.remove();
-            return new ReceiveMessageDTO(currentMessage.getSenderId(), currentMessage.getContent());
-
-        }
-
-        return null;
+        return deliveredMessages;
 
     }
 
@@ -95,8 +91,6 @@ public class ChatService {
 
         for (Node node : currentGroup) {
 
-            if (node.getId().equals(nodeConfig.getSelf().getId()))
-                continue;
             new Thread(() -> {
                 try {
 
