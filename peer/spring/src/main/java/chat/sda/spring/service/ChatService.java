@@ -5,6 +5,10 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
+
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import chat.sda.spring.model.ChatMessage;
@@ -20,6 +24,7 @@ public class ChatService {
     private final Map<Long, OrderMessage> orderQueue;
     private final Queue<ChatMessage> deliveredMessages;
     private final GroupService groupService;
+    private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     public ChatService(NodeConfig nodeConfig, GroupService groupService) {
 
@@ -41,11 +46,15 @@ public class ChatService {
                 break;
             }
 
-            holdBackQueue.remove(order.getMessageId());
-            orderQueue.remove(rg.get());
+            ChatMessage currentTopMessage = holdBackQueue.remove(order.getMessageId());
+            OrderMessage currentTopOrderMessage = orderQueue.remove(rg.get());
+            log.info("Sequencia Local Atual(rg):{}", rg.get());
+            log.info("Mensagem - Id:{} - SenderId:{} - Conteudo:{}", currentTopMessage.getId(), currentTopMessage.getSenderId(), currentTopMessage.getContent());
+            log.info("Ordem - Message Id:{} - Sg:{}", currentTopOrderMessage.getMessageId(), currentTopOrderMessage.getSequenceNumber());
             deliveredMessages.add(message);
-
+            log.info("Mensagem Liberada - Id:{} - SenderId:{} - Conteudo:{}", message.getId(), message.getSenderId(), message.getContent());
             rg.incrementAndGet();
+            log.info("Nova Sequencia Local Atual(rg):{}", rg.get());
         }
     }
 
@@ -58,26 +67,20 @@ public class ChatService {
     public synchronized void bDeliver(ChatMessage message){
 
         holdBackQueue.put(message.getId(), message);
+        log.info("Mensagem armazenada - Id:{} - SenderId:{} - Conteudo:{}", message.getId(), message.getSenderId(), message.getContent());
         refreshMessages();
-
     }
 
     public synchronized void orderDeliver(OrderMessage order){
 
         orderQueue.put(order.getSequenceNumber(),order);
+        log.info("Ordem armazenada - Message Id:{} - SG:{}", order.getMessageId(), order.getSequenceNumber());
         refreshMessages();
-
     }
 
     public Queue<ChatMessage> getMessages(){
 
-        if(!deliveredMessages.isEmpty()){
-
-            return deliveredMessages;
-
-        }
-
-        return null;
+        return deliveredMessages;
 
     }
 

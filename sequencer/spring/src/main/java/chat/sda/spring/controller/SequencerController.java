@@ -3,12 +3,14 @@ package chat.sda.spring.controller;
 import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.service.SequencerService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*")
 @RestController
+@Slf4j
 @RequestMapping(value = "/chat")
 public class SequencerController {
 

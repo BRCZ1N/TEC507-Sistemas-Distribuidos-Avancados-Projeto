@@ -2,6 +2,9 @@ package chat.sda.spring.service;
 
 import chat.sda.spring.model.Node;
 import chat.sda.spring.utils.NodeConfig;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,6 +17,7 @@ public class GroupService {
 
     private final Map<String,Node> group;
     private final NodeConfig nodeConfig;
+    private static final Logger log = LoggerFactory.getLogger(GroupService.class);
 
     public GroupService(NodeConfig nodeConfig) {
 
@@ -26,7 +30,9 @@ public class GroupService {
     public void join(Node node) {
 
         group.putIfAbsent(node.getId(), node);
-        
+
+        log.info("Peer Id:{} - Ip:{} - Porta:{} entrou no grupo", node.getId(), node.getHost(), node.getPort());
+
         for (Node currentNode : group.values()) {
 
             if (currentNode.equals(nodeConfig.getSelf())) {
