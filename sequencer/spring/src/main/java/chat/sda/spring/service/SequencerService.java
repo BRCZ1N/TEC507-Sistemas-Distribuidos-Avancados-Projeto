@@ -1,15 +1,16 @@
 package chat.sda.spring.service;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-import chat.sda.spring.dto.ChatMessageDTO;
-import chat.sda.spring.model.Node;
-import chat.sda.spring.model.OrderMessage;
-import chat.sda.spring.utils.NodeConfig;
-import lombok.extern.slf4j.Slf4j;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import chat.sda.spring.dto.ChatMessageDTO;
+import chat.sda.spring.model.Node;
+import chat.sda.spring.model.OrderMessage;
+import chat.sda.spring.utils.NodeConfig;
 
 @Service
 public class SequencerService {
@@ -33,8 +34,8 @@ public class SequencerService {
         OrderMessage order = new OrderMessage(message.getId(),currentSg);
         bMulticast(order);
         log.info("Messagem - Id:{} - SenderId:{} - Conteudo:{}", message.getId(), message.getSenderId(), message.getContent());
-        log.info("Sequencia Global Atual(SG):{}", currentSg);
-        log.info("Ordem - Message Id:{} - SG:{}", order.getMessageId(), order.getSequenceNumber());
+        log.info("Sequencia Global Atual(Sg):{}", currentSg);
+        log.info("Ordem - Message Id:{} - Sg:{}", order.getMessageId(), order.getSequenceNumber());
 
     }
 
@@ -42,7 +43,7 @@ public class SequencerService {
     private void bMulticast(OrderMessage message) {
 
         ArrayList<Node> currentGroup = new ArrayList<>(groupService.getGroup());
-        log.info("Mensagem de ordem - Message Id:{} - SG:{}", message.getMessageId(), message.getSequenceNumber());
+        log.info("Mensagem de ordem - Message Id:{} - Sg:{}", message.getMessageId(), message.getSequenceNumber());
 
         for (Node node : currentGroup) {
 
