@@ -15,14 +15,14 @@ public class NodeConfig {
     @Value("${node.id}")
     private String id;
 
-    @Value("${node.host:}")
+    @Value("${node.host}")
     private String host;
 
     private Node self;
 
     @EventListener(WebServerInitializedEvent.class)
     public void onWebServerReady(WebServerInitializedEvent event) throws UnknownHostException {
-
+        
         int port = event.getWebServer().getPort();
 
         if (host == null || host.isBlank()) {
