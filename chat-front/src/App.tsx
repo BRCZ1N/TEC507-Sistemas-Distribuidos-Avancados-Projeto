@@ -37,15 +37,19 @@ export default function App() {
             const res = await fetch(`${SEQUENCER_URL}/group`);
             const data = await res.json();
 
-            if (Array.isArray(data)) {
-                const filtered = data.filter((p) => p.port !== 60000);
+            if (!Array.isArray(data)) return;
 
-                setPeers(filtered);
+            const filtered = data.filter((p) => p.port !== 60000);
 
-                if (!selectedPeer && filtered.length > 0) {
-                    setSelectedPeer(filtered[0]);
-                }
-            }
+            setPeers(filtered);
+
+            setSelectedPeer((prev) => {
+                if (!prev) return null;
+
+                const stillExists = filtered.find((p) => p.id === prev.id);
+                return stillExists ? prev : null;
+            });
+
         } catch (err) {
             console.log("Erro getPeers:", err);
         }
@@ -98,12 +102,19 @@ export default function App() {
 
     useEffect(() => {
         getPeers();
+
+        const interval = setInterval(() => {
+            getPeers();
+        }, 2000);
+
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
         if (!selectedPeer) return;
 
         fetchMessages();
+
         const interval = setInterval(fetchMessages, 1200);
 
         return () => clearInterval(interval);
@@ -122,7 +133,7 @@ export default function App() {
                 background: "linear-gradient(180deg, #0b0b0b, #151515)",
             }}
         >
-            {/* SIDEBAR */}
+
             <Box
                 sx={{
                     width: 220,
@@ -149,6 +160,10 @@ export default function App() {
                                     selectedPeer?.id === p.id
                                         ? "#2563eb"
                                         : "#1a1a1a",
+                                border:
+                                    selectedPeer?.id === p.id
+                                        ? "1px solid #3b82f6"
+                                        : "1px solid transparent",
                                 "&:hover": { opacity: 0.8 },
                             }}
                         >
@@ -160,7 +175,6 @@ export default function App() {
                 </Box>
             </Box>
 
-            {/* CHAT */}
             <Box
                 sx={{
                     flex: 1,
@@ -182,7 +196,7 @@ export default function App() {
                         background: "#121212",
                     }}
                 >
-                    {/* HEADER */}
+
                     <Box sx={{ p: 2, borderBottom: "1px solid #222" }}>
                         <Typography variant="caption" sx={{ color: "#fff" }}>
                             Total Order Multicast Chat
@@ -193,84 +207,109 @@ export default function App() {
                         </Typography>
 
                         <Typography variant="caption" sx={{ color: "#888", display: "block" }}>
-                            Peer: {selectedPeer?.id ?? "nenhum"}
+                            Peer: {selectedPeer?.id ?? "nenhum selecionado"}
                         </Typography>
                     </Box>
 
-                    {/* MESSAGES */}
-                    <Box
-                        sx={{
-                            flex: 1,
-                            overflowY: "auto",
-                            p: 2,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 1.2,
-                        }}
-                    >
-                        {messages.map((msg) => (
-                            <Box key={msg.id} sx={{ display: "flex" }}>
-                                <Box
-                                    sx={{
-                                        maxWidth: "75%",
-                                        p: "10px 12px",
-                                        borderRadius: 2,
-                                        background: "#2a2a2a",
-                                        color: "white",
-                                    }}
-                                >
-                                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                                        {msg.senderId}
-                                    </Typography>
-
-                                    <Typography variant="body2">
-                                        {msg.content}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        ))}
-
-                        <div ref={bottomRef} />
-                    </Box>
-
-                    {/* INPUT */}
-                    <Box
-                        sx={{
-                            display: "flex",
-                            gap: 1,
-                            p: 1.5,
-                            borderTop: "1px solid #222",
-                            background: "#1a1a1a",
-                        }}
-                    >
-                        <TextField
-                            fullWidth
-                            size="small"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") sendMessage();
-                            }}
+                    {!selectedPeer ? (
+                        <Box
                             sx={{
-                                input: { color: "white" },
-                                "& .MuiOutlinedInput-root": {
-                                    color: "white",
-                                    "& fieldset": { borderColor: "#333" },
-                                },
-                            }}
-                        />
-
-                        <Button
-                            variant="contained"
-                            onClick={sendMessage}
-                            sx={{
-                                background: "#2563eb",
-                                textTransform: "none",
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                color: "#888",
+                                textAlign: "center",
+                                p: 3,
                             }}
                         >
-                            Send
-                        </Button>
-                    </Box>
+                            <Typography variant="h6" sx={{ color: "#ccc" }}>
+                                Nenhum peer selecionado
+                            </Typography>
+
+                            <Typography variant="body2" sx={{ mt: 1, color: "#777" }}>
+                                Selecione um peer na barra lateral para iniciar o chat
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <>
+
+                            <Box
+                                sx={{
+                                    flex: 1,
+                                    overflowY: "auto",
+                                    p: 2,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 1.2,
+                                }}
+                            >
+                                {messages.map((msg) => (
+                                    <Box key={msg.id} sx={{ display: "flex" }}>
+                                        <Box
+                                            sx={{
+                                                maxWidth: "75%",
+                                                p: "10px 12px",
+                                                borderRadius: 2,
+                                                background: "#2a2a2a",
+                                                color: "white",
+                                            }}
+                                        >
+                                            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                                {msg.senderId}
+                                            </Typography>
+
+                                            <Typography variant="body2">
+                                                {msg.content}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                ))}
+
+                                <div ref={bottomRef} />
+                            </Box>
+                            
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    p: 1.5,
+                                    borderTop: "1px solid #222",
+                                    background: "#1a1a1a",
+                                }}
+                            >
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") sendMessage();
+                                    }}
+                                    sx={{
+                                        input: { color: "white" },
+                                        "& .MuiOutlinedInput-root": {
+                                            color: "white",
+                                            "& fieldset": { borderColor: "#333" },
+                                        },
+                                    }}
+                                />
+
+                                <Button
+                                    variant="contained"
+                                    onClick={sendMessage}
+                                    disabled={!selectedPeer}
+                                    sx={{
+                                        background: "#2563eb",
+                                        textTransform: "none",
+                                    }}
+                                >
+                                    Send
+                                </Button>
+                            </Box>
+                        </>
+                    )}
                 </Paper>
             </Box>
         </Box>
