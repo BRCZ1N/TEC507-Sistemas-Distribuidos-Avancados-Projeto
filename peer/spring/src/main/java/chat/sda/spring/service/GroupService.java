@@ -17,16 +17,20 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class GroupService {
 
-    private final Map<String,Node> group;
+    private final Map<Long,Node> group;
     private final Node nodeSequencer;
     private final NodeConfig nodeConfig;
     private static final Logger log = LoggerFactory.getLogger(GroupService.class);
 
-    public GroupService(NodeConfig nodeConfig, @Value("${sequencer.id}") String sequencerId, @Value("${sequencer.host}")  String sequencerHost, @Value("${sequencer.port}") int sequencerPort) {
+    public GroupService(NodeConfig nodeConfig, @Value("${sequencer.id}") Long sequencerId, @Value("${sequencer.host}")  String sequencerHost, @Value("${sequencer.port}") int sequencerPort) {
 
         this.group = new ConcurrentHashMap<>();
         this.nodeSequencer = new Node(sequencerId, sequencerHost, sequencerPort);
         this.nodeConfig = nodeConfig;
+    }
+
+    public Node getNodePerId(Long id) {
+        return group.get(id);
     }
 
     public ArrayList<Node> getGroup() {

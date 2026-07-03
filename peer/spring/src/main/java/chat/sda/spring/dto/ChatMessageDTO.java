@@ -5,24 +5,24 @@ import jakarta.validation.constraints.NotNull;
 public class ChatMessageDTO {
 
     @NotNull
-    private String id;
-    @NotNull
     private String senderId;
     @NotNull
+    private String id;
+    @NotNull
     private String content;
+    private Long sequenceNumber;
+    @NotNull
+    private Long processSenderId;
+    private Long processProposerId;
+    @NotNull
+    private Boolean isDeliverable;
 
-    public ChatMessageDTO(String id, String senderId, String content) {
-        this.id = id;
-        this.senderId = senderId;
-        this.content = content;
+    public Boolean getDeliverable() {
+        return isDeliverable;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
+    public void setDeliverable(Boolean deliverable) {
+        isDeliverable = deliverable;
     }
 
     public String getSenderId() {
@@ -33,6 +33,14 @@ public class ChatMessageDTO {
         this.senderId = senderId;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public String getContent() {
         return content;
     }
@@ -40,4 +48,22 @@ public class ChatMessageDTO {
     public void setContent(String content) {
         this.content = content;
     }
+
+    public Long getSequenceNumber() {
+        return sequenceNumber;
+    }
+
+    public void setSequenceNumber(Long sequenceNumber) {
+        this.sequenceNumber = sequenceNumber;
+    }
+
+    public Long getProcessSenderId() {
+        return processSenderId;
+    }
+
+    public void setProcessSenderId(Long processSenderId) { this.processSenderId = processSenderId;}
+
+    public Long getProcessProposerId() {return processProposerId;}
+
+    public void setProcessProposerId(Long processProposerId) {this.processProposerId = processProposerId; }
 }
