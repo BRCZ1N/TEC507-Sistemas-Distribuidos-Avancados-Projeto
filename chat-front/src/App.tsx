@@ -38,13 +38,9 @@ export default function App() {
             const data = await res.json();
 
             if (Array.isArray(data)) {
-                const filtered = data.filter((p) => p.port !== 60000);
 
-                setPeers(filtered);
+                setPeers(data);
 
-                if (!selectedPeer && filtered.length > 0) {
-                    setSelectedPeer(filtered[0]);
-                }
             }
         } catch (err) {
             console.log("Erro getPeers:", err);
@@ -56,7 +52,7 @@ export default function App() {
 
         try {
             const res = await fetch(
-                `http://${selectedPeer.host}:${selectedPeer.port}/chat`
+                `http://${selectedPeer.host}:${selectedPeer.port}/chat/messages`
             );
 
             if (!res.ok) return;
@@ -76,7 +72,7 @@ export default function App() {
 
         try {
             await fetch(
-                `http://${selectedPeer.host}:${selectedPeer.port}/chat/multicast`,
+                `http://${selectedPeer.host}:${selectedPeer.port}/chat/message`,
                 {
                     method: "POST",
                     headers: {

@@ -2,10 +2,11 @@ package chat.sda.spring.service;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 import chat.sda.spring.dto.AgreementMessageDTO;
-import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.dto.ProposalMessageDTO;
 import chat.sda.spring.model.AgreementMessage;
 import chat.sda.spring.model.ProposalMessage;
@@ -30,6 +31,7 @@ public class ChatService {
     private final GroupService groupService;
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
     private final RestTemplate rest = new RestTemplate();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public ChatService(GroupService groupService) {
         this.rg = new AtomicLong(0);
@@ -41,29 +43,34 @@ public class ChatService {
 
     //Recebe a mensagem e envia o multicast para o grupo
     public synchronized void sendMessage(ChatMessage message){
-
+        message.setProcessSenderId(processId);
         groupService.getGroup().forEach(node -> sendMessageToNode(node,message));
 
     }
 
     //Monta a requisição do multicast
     private synchronized void sendMessageToNode(Node node, ChatMessage message){
+        executor.submit(() -> {
+            try {
 
-        try {
+                ResponseEntity<ProposalMessageDTO> response = rest.postForEntity(
+                        "http://" + node.getHost() + ":" + node.getPort() + "/chat/proposal",
+                        message,
+                        ProposalMessageDTO.class
+                );
+                ProposalMessage currentProposal = new ProposalMessage(response.getBody().getMessageId(), response.getBody().getSequenceNumber(), response.getBody().getProcessProposalId());
+                proposalMap.computeIfAbsent(currentProposal.getMessageId(), k -> new ConcurrentLinkedQueue<>()).offer(currentProposal);
+                checkAndSendAgreement(response.getBody().getMessageId());
 
-            ResponseEntity<ProposalMessageDTO> response = rest.postForEntity(
-                    "http://" + node.getHost() + ":" + node.getPort() + "/chat/proposal",
-                    message,
-                    ProposalMessageDTO.class
-            );
-            ProposalMessage currentProposal = new ProposalMessage(response.getBody().getMessageId(), response.getBody().getSequenceNumber(), response.getBody().getProcessProposalId());
-            proposalMap.computeIfAbsent(currentProposal.getMessageId(), k -> new ConcurrentLinkedQueue<>()).offer(currentProposal);
-            checkAndSendAgreement(response.getBody().getMessageId());
+            } catch (Exception e) {
+                if (node == groupService.getLeader()){
 
-        } catch (Exception e) {
-            System.out.println("Falha ao enviar para " + node.getId());
-        }
+                    groupService.initBullyVote();
 
+                }
+                System.out.println("Falha ao enviar para " + node.getId());
+            }
+        });
     }
 
     // Os peers recebem a mensagem, criam uma proposta e retorna ao processo que enviou, isto é, o sender
@@ -96,16 +103,22 @@ public class ChatService {
 
     //Monta a requisição do multicast
     private synchronized void sendMessageAgreementToNode(Node node, AgreementMessage agreement){
+        executor.submit(() -> {
+            try {
+                rest.postForEntity(
+                        "http://" + node.getHost() + ":" + node.getPort() + "/chat/agreement",
+                        agreement,
+                        Void.class
+                );
+            } catch (Exception e) {
+                if (node == groupService.getLeader()){
 
-        try {
-            rest.postForEntity(
-                    "http://" + node.getHost() + ":" + node.getPort() + "/chat/agreement",
-                    agreement,
-                    Void.class
-            );
-        } catch (Exception e) {
-            System.out.println("Falha ao enviar para " + node.getId());
-        }
+                    groupService.initBullyVote();
+
+                }
+                System.out.println("Falha ao enviar para " + node.getId());
+            }
+        });
     }
 
 

@@ -10,7 +10,6 @@ public class ChatMessage {
     private String id;
     private String content;
     private Long sequenceNumber;
-    @Value("${node.id}")
     private Long processSenderId;
     private Long processProposalId;
     private Boolean isDeliverable;
