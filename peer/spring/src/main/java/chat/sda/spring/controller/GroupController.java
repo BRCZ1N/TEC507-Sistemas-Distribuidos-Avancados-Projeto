@@ -46,7 +46,7 @@ public class GroupController {
     }
 
     @PostMapping("/election")
-    public ResponseEntity<String> receiveElection(@RequestBody Long senderNode) {
+    public ResponseEntity<String> receiveElection(@RequestParam Long senderNode) {
 
         if (nodeConfig.getSelf().getId() > senderNode) {
             groupService.initBullyVote();
@@ -68,6 +68,11 @@ public class GroupController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(leader);
+    }
+
+    @GetMapping("/heartbeat")
+    public ResponseEntity<Void> heartbeat() {
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping

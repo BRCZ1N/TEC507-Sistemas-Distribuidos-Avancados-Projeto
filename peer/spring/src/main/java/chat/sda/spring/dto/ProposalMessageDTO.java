@@ -11,13 +11,13 @@ public class ProposalMessageDTO {
     @NotNull
     private Long processSenderId;
     @NotNull
-    private Long processProposalId;
+    private Long processProposerId;
 
-    public ProposalMessageDTO(String messageId, Long sequenceNumber, Long processSenderId, Long processProposalId) {
+    public ProposalMessageDTO(String messageId, Long sequenceNumber, Long processSenderId, Long processProposerId) {
         this.messageId = messageId;
         this.sequenceNumber = sequenceNumber;
         this.processSenderId = processSenderId;
-        this.processProposalId = processProposalId;
+        this.processProposerId = processProposerId;
     }
 
     public String getMessageId() {
@@ -44,11 +44,11 @@ public class ProposalMessageDTO {
         this.processSenderId = processSenderId;
     }
 
-    public Long getProcessProposalId() {
-        return processProposalId;
+    public Long getProcessProposerId() {
+        return processProposerId;
     }
 
-    public void setProcessProposalId(Long processProposalId) {
-        this.processProposalId = processProposalId;
+    public void setProcessProposerId(Long processProposerId) {
+        this.processProposerId = processProposerId;
     }
 }

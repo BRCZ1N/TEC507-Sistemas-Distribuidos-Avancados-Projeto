@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ public class GroupService {
     private final NodeConfig nodeConfig;
     private static final Logger log = LoggerFactory.getLogger(GroupService.class);
     private final RestTemplate rest;
+    private final AtomicBoolean electionRunning = new AtomicBoolean(false);
     private final AtomicBoolean receivedOk;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -68,11 +70,11 @@ public class GroupService {
 
                     if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                         this.currentLeader = response.getBody();
-                        log.info("Nó ativo encontrado na porta {}. Ele informou que o líder é o Nó {}", port, currentLeader);
+                        log.info("Nó ativo encontrado na porta {}. Ele informou que o líder é o Nó {}", port, currentLeader.getId());
                         break;
                     }
                 } catch (Exception e) {
-                    System.out.println("Porta não alocada ou não encontrada");
+                    log.warn("Porta não alocada ou não encontrada");
                 }
             }
             if (this.currentLeader != null) {
@@ -103,6 +105,35 @@ public class GroupService {
         }
     }
 
+    private void removeNode(Long idNode) {
+
+        if (currentLeader == null || !nodeConfig.getSelf().getId().equals(currentLeader.getId())) {
+            return;
+        }
+
+        group.remove(idNode);
+
+        for (Node currentNode : group.values()) {
+
+            if (currentNode.equals(nodeConfig.getSelf())) {
+                continue;
+            }
+            executor.submit(() -> {
+                try {
+                    rest.postForEntity(
+                            "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh",
+                            new ArrayList<>(group.values()),
+                            Void.class
+                    );
+
+                } catch (Exception e) {
+                    log.warn("Falha ao enviar para o Id:{}",currentNode.getId());
+                }
+            });
+        }
+
+    }
+
     public void join(Node node) {
 
         group.putIfAbsent(node.getId(), node);
@@ -123,24 +154,32 @@ public class GroupService {
                     );
 
                 } catch (Exception e) {
-                    System.out.println("Falha ao enviar para " + currentNode.getId());
+                    log.warn("Falha ao enviar para o Id:{}", currentNode.getId());
                 }
             });
         }
     }
 
-    public void refreshGroup(ArrayList<Node> newGroup) {
+    public synchronized void refreshGroup(ArrayList<Node> newGroup) {
+
+        group.clear();
 
         for (Node node : newGroup) {
 
-            group.putIfAbsent(node.getId(), node);
+            group.put(node.getId(), node);
 
         }
+
     }
 
     public void initBullyVote() {
 
+        if (!electionRunning.compareAndSet(false, true)) {
+            return;
+        }
+
         executor.submit(() -> {
+
             log.info("[BULLY] Iniciando eleição ... Meu ID é {}", nodeConfig.getSelf().getId());
             receivedOk.set(false);
 
@@ -158,6 +197,8 @@ public class GroupService {
                         receivedOk.set(true);
                     } catch (Exception e) {
                         log.warn("[BULLY] Nó {} na porta {} não respondeu ao ELECTION (deve ter caído).", remoteNode.getId(), remoteNode.getPort());
+                    } finally {
+                        electionRunning.set(false);
                     }
                 }
             }
@@ -173,6 +214,7 @@ public class GroupService {
 
                 announceCoordinator();
             }
+            electionRunning.set(false);
         });
     }
 
@@ -192,10 +234,47 @@ public class GroupService {
                     );
 
                 } catch (Exception e) {
-                        System.out.println("Falha ao anunciar coordenação para " + currentNode.getId());
+                    try {
+                        log.warn("Falha ao anunciar coordenação para o nó {}. Nova tentativa...", currentNode.getId());
+                        Thread.sleep(500);
+                        rest.postForEntity(
+                                "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/coordinator",
+                                nodeConfig.getSelf(),
+                                Void.class
+                        );
+                    } catch (Exception e1) {
+                        log.warn("Nó {} removido do grupo após duas falhas.", currentNode.getId());
+                        removeNode(currentNode.getId());
+                    }
                 }
             });
         }
     }
+    @Scheduled(fixedDelay = 2000)
+    public void verifyLeader() {
+
+        Node leader = getLeader();
+
+        if (leader == null || leader.getId().equals(nodeConfig.getSelf().getId())) {
+            return;
+        }
+
+        log.info("Lider local: Id: {} - Ip: {} - Porta: {}", leader.getId(),leader.getHost(),leader.getPort());
+        log.info("Verificação de líder");
+
+        try {
+
+            rest.getForEntity(
+                    "http://" + leader.getHost() + ":" + leader.getPort() + "/group/heartbeat",
+                    Void.class
+            );
+            log.info("Líder ativo");
+
+        } catch (Exception e) {
+            log.info("Líder não encontrado");
+            initBullyVote();
+        }
+    }
+
 
 }
