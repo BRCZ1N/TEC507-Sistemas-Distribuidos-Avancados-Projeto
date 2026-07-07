@@ -57,7 +57,7 @@ public class GroupService {
             String hostBase = nodeConfig.getHostBase();
 
             int firstPort = 60000;
-            int lastPort = 60050;
+            int lastPort = 60010;
 
             for (int port = firstPort; port <= lastPort; port++) {
 
