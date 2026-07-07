@@ -1,4 +1,5 @@
 package chat.sda.spring.service;
+import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.utils.NodeConfig;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -175,46 +177,79 @@ public class GroupService {
     public void initBullyVote() {
 
         if (!electionRunning.compareAndSet(false, true)) {
+            log.info("[BULLY] Eleição já está em andamento.");
             return;
         }
 
         executor.submit(() -> {
 
-            log.info("[BULLY] Iniciando eleição ... Meu ID é {}", nodeConfig.getSelf().getId());
-            receivedOk.set(false);
+            try {
+                log.info("[BULLY] Iniciando eleição ... Meu ID é {}", nodeConfig.getSelf().getId());
 
-            for (Node remoteNode : group.values()) {
+                receivedOk.set(false);
 
-                if (remoteNode.getId() > nodeConfig.getSelf().getId()) {
-                    try {
-                        log.info("[BULLY] Desafiando Nó Maior -> ID {} na porta {}", remoteNode.getId(), remoteNode.getPort());
+                boolean higherNodeFound = false;
 
-                        rest.postForEntity(
-                                "http://" + remoteNode.getHost() + ":" + remoteNode.getPort() + "/group/election?senderNode="+nodeConfig.getSelf().getId(),
-                                null,
-                                Void.class
-                        );
-                        receivedOk.set(true);
-                    } catch (Exception e) {
-                        log.warn("[BULLY] Nó {} na porta {} não respondeu ao ELECTION (deve ter caído).", remoteNode.getId(), remoteNode.getPort());
-                    } finally {
-                        electionRunning.set(false);
+                for (Node remoteNode : group.values()) {
+
+                    if (remoteNode.getId() > nodeConfig.getSelf().getId()) {
+
+                        higherNodeFound = true;
+
+                        try {
+                            log.info(
+                                    "[BULLY] Desafiando Nó Maior -> ID {} na porta {}",
+                                    remoteNode.getId(),
+                                    remoteNode.getPort()
+                            );
+
+                            rest.postForEntity(
+                                    "http://"
+                                            + remoteNode.getHost()
+                                            + ":"
+                                            + remoteNode.getPort()
+                                            + "/group/election?senderNode="
+                                            + nodeConfig.getSelf().getId(),
+                                    null,
+                                    Void.class
+                            );
+
+                            receivedOk.set(true);
+
+                        } catch (Exception e) {
+
+                            log.warn(
+                                    "[BULLY] Nó {} não respondeu ao ELECTION.",
+                                    remoteNode.getId()
+                            );
+                        }
                     }
                 }
+
+                if (higherNodeFound) {
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ignored) {}
+
+                }
+
+                if (!receivedOk.get()) {
+
+                    log.info("[BULLY] Nenhum nó maior respondeu. Eu sou o novo Líder!");
+
+                    this.currentLeader = nodeConfig.getSelf();
+                    this.group.put(currentLeader.getId(), currentLeader);
+
+                    announceCoordinator();
+                }
+
+            } finally {
+
+                electionRunning.set(false);
+
             }
 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) {}
-
-            if (!receivedOk.get()) {
-                log.info("[BULLY] Nenhum nó maior respondeu. Eu sou o novo Líder!");
-                this.currentLeader = nodeConfig.getSelf();
-                this.group.put(currentLeader.getId(), currentLeader);
-
-                announceCoordinator();
-            }
-            electionRunning.set(false);
         });
     }
 
@@ -244,12 +279,32 @@ public class GroupService {
                         );
                     } catch (Exception e1) {
                         log.warn("Nó {} removido do grupo após duas falhas.", currentNode.getId());
-                        removeNode(currentNode.getId());
+                        reportNode(currentNode);
                     }
                 }
             });
         }
     }
+
+    public void reportNode(Node node){
+
+        executor.submit(() -> {
+           try{
+               rest.getForEntity(
+                       "http://" + node.getHost() + ":" + node.getPort() + "/group/heartbeat",
+                       Void.class
+               );
+               log.info("Nó {} respondeu ao heartbeat. Mantendo no grupo.", node.getId());
+           }catch (Exception e){
+               log.warn("Nó {} confirmado como falho.", node.getId());
+               removeNode(node.getId());
+           }
+        });
+
+    }
+
+
+
     @Scheduled(fixedDelay = 2000)
     public void verifyLeader() {
 

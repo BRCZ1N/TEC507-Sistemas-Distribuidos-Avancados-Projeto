@@ -1,7 +1,5 @@
 package chat.sda.spring.model;
 
-import org.springframework.beans.factory.annotation.Value;
-
 import java.util.UUID;
 
 public class ChatMessage {
@@ -11,18 +9,8 @@ public class ChatMessage {
     private String content;
     private Long sequenceNumber;
     private Long processSenderId;
-    private Long processProposalId;
+    private Long processProposerId;
     private Boolean isDeliverable;
-
-    public ChatMessage(String senderId, String id, String content, Long sequenceNumber, Long processSenderId, Long processProposalId, Boolean isDeliverable) {
-        this.senderId = senderId;
-        this.id = id;
-        this.content = content;
-        this.sequenceNumber = sequenceNumber;
-        this.processSenderId = processSenderId;
-        this.processProposalId = processProposalId;
-        this.isDeliverable = isDeliverable;
-    }
 
     public ChatMessage(String senderId, String content) {
         this.senderId = senderId;
@@ -31,12 +19,14 @@ public class ChatMessage {
         this.isDeliverable = false;
     }
 
-    public Boolean getDeliverable() {
-        return isDeliverable;
-    }
-
-    public void setDeliverable(Boolean deliverable) {
-        isDeliverable = deliverable;
+    public ChatMessage(String senderId, String id, String content, Long sequenceNumber, Long processSenderId, Long processProposerId, Boolean isDeliverable) {
+        this.senderId = senderId;
+        this.id = id;
+        this.content = content;
+        this.sequenceNumber = sequenceNumber;
+        this.processSenderId = processSenderId;
+        this.processProposerId = processProposerId;
+        this.isDeliverable = isDeliverable;
     }
 
     public String getSenderId() {
@@ -79,11 +69,19 @@ public class ChatMessage {
         this.processSenderId = processSenderId;
     }
 
-    public Long getProcessProposalId() {
-        return processProposalId;
+    public Long getProcessProposerId() {
+        return processProposerId;
     }
 
-    public void setProcessProposalId(Long processProposalId) {
-        this.processProposalId = processProposalId;
+    public void setProcessProposerId(Long processProposerId) {
+        this.processProposerId = processProposerId;
+    }
+
+    public Boolean getDeliverable() {
+        return isDeliverable;
+    }
+
+    public void setDeliverable(Boolean deliverable) {
+        isDeliverable = deliverable;
     }
 }

@@ -8,11 +8,13 @@ public class AgreementMessageDTO {
     private String messageId;
     @NotNull
     private Long sequenceNumber;
+    @NotNull
+    private Long processProposerId;
 
-
-    public AgreementMessageDTO(String messageId, Long sequenceNumber) {
+    public AgreementMessageDTO(String messageId, Long sequenceNumber, Long processProposerId) {
         this.messageId = messageId;
         this.sequenceNumber = sequenceNumber;
+        this.processProposerId = processProposerId;
     }
 
     public String getMessageId() {
@@ -31,4 +33,11 @@ public class AgreementMessageDTO {
         this.sequenceNumber = sequenceNumber;
     }
 
+    public Long getProcessProposerId() {
+        return processProposerId;
+    }
+
+    public void setProcessProposerId(Long processProposerId) {
+        this.processProposerId = processProposerId;
+    }
 }

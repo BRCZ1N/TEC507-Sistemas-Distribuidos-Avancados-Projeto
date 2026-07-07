@@ -17,6 +17,7 @@ public class ChatMessageDTO {
     @NotNull
     private Boolean isDeliverable;
 
+
     public Boolean getDeliverable() {
         return isDeliverable;
     }
@@ -61,9 +62,15 @@ public class ChatMessageDTO {
         return processSenderId;
     }
 
-    public void setProcessSenderId(Long processSenderId) { this.processSenderId = processSenderId;}
+    public void setProcessSenderId(Long processSenderId) {
+        this.processSenderId = processSenderId;
+    }
 
-    public Long getProcessProposerId() {return processProposerId;}
+    public Long getProcessProposerId() {
+        return processProposerId;
+    }
 
-    public void setProcessProposerId(Long processProposerId) {this.processProposerId = processProposerId; }
+    public void setProcessProposerId(Long processProposerId) {
+        this.processProposerId = processProposerId;
+    }
 }

@@ -75,6 +75,12 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/node-failure")
+    public ResponseEntity<Void> reportError(@RequestBody Node node) {
+        groupService.reportNode(node);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping
     public ResponseEntity<ArrayList<Node>> getGroup() {
         return ResponseEntity.ok(groupService.getGroup());
