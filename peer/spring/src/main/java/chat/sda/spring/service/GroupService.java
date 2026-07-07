@@ -61,12 +61,12 @@ public class GroupService {
 
             for (int port = firstPort; port <= lastPort; port++) {
 
-                if (port == nodeConfig.getSelf().getPort() && nodeConfig.getHostBase().equals(nodeConfig.getSelf().getHost())) continue;
+                if (port == nodeConfig.getSelf().getPort() && hostBase.equals(nodeConfig.getSelf().getHost())) continue;
 
                 try {
 
                     ResponseEntity<Node> response = rest.getForEntity(
-                            hostBase + port + "/group/leader",
+                            "http://" + hostBase + ":" + port + "/group/leader",
                             Node.class
                     );
 
