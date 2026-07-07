@@ -4,6 +4,8 @@ import chat.sda.spring.dto.AgreementMessageDTO;
 import chat.sda.spring.dto.ProposalMessageDTO;
 import chat.sda.spring.model.AgreementMessage;
 import chat.sda.spring.model.ChatMessage;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.model.ProposalMessage;
 import chat.sda.spring.utils.NodeConfig;
@@ -14,10 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 
@@ -34,6 +33,7 @@ public class ChatService {
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
     private final RestTemplate rest = new RestTemplate();
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 
     public ChatService(GroupService groupService, NodeConfig nodeConfig) {
@@ -225,7 +225,7 @@ public class ChatService {
                 agreement.getSequenceNumber(),
                 agreement.getProcessProposerId()
         );
-        refreshMessages();
+        scheduler.schedule(this::refreshMessages, 100, TimeUnit.MILLISECONDS);
 
     }
 
