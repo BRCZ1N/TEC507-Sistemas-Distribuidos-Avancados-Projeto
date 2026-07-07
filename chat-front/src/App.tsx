@@ -22,15 +22,19 @@ export default function App() {
     const [content, setContent] = useState("");
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const previousMessageCount = useRef(0);
 
     const [senderId] = useState(() => {
         const saved = localStorage.getItem("guestId");
+
         if (saved) return saved;
 
         const id = `Guest-${Math.random().toString(36).substring(2, 8)}`;
         localStorage.setItem("guestId", id);
+
         return id;
     });
+
 
     const getPeers = async () => {
         try {
@@ -38,14 +42,14 @@ export default function App() {
             const data = await res.json();
 
             if (Array.isArray(data)) {
-
                 setPeers(data);
-
             }
+
         } catch (err) {
             console.log("Erro getPeers:", err);
         }
     };
+
 
     const fetchMessages = async () => {
         if (!selectedPeer) return;
@@ -60,17 +64,30 @@ export default function App() {
             const data = await res.json();
 
             if (Array.isArray(data)) {
-                setMessages(data);
+
+                const changed =
+                    data.length !== messages.length ||
+                    data[data.length - 1]?.id !== messages[messages.length - 1]?.id;
+
+
+                if (changed) {
+                    setMessages(data);
+                }
             }
+
         } catch (err) {
             console.log("fetch error:", err);
         }
     };
 
+
     const sendMessage = async () => {
+
         if (!content.trim() || !selectedPeer) return;
 
+
         try {
+
             await fetch(
                 `http://${selectedPeer.host}:${selectedPeer.port}/chat/message`,
                 {
@@ -85,31 +102,64 @@ export default function App() {
                 }
             );
 
+
             setContent("");
+
             fetchMessages();
+
+
         } catch (err) {
+
             console.log("send error:", err);
+
         }
     };
+
 
     useEffect(() => {
         getPeers();
     }, []);
 
+
+
     useEffect(() => {
+
         if (!selectedPeer) return;
 
+
         fetchMessages();
+
+
         const interval = setInterval(fetchMessages, 1200);
 
+
         return () => clearInterval(interval);
-    }, [selectedPeer]);
+
+
+    }, [selectedPeer, messages]);
+
+
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+
+        if (messages.length > previousMessageCount.current) {
+
+            bottomRef.current?.scrollIntoView({
+                behavior: "smooth",
+            });
+
+        }
+
+
+        previousMessageCount.current = messages.length;
+
+
     }, [messages]);
 
+
+
     return (
+
         <Box
             sx={{
                 height: "100vh",
@@ -118,7 +168,7 @@ export default function App() {
                 background: "linear-gradient(180deg, #0b0b0b, #151515)",
             }}
         >
-            {/* SIDEBAR */}
+
             <Box
                 sx={{
                     width: 220,
@@ -128,12 +178,23 @@ export default function App() {
                     color: "white",
                 }}
             >
+
                 <Typography variant="caption">
                     Peers Online
                 </Typography>
 
-                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+
+                <Box
+                    sx={{
+                        mt: 2,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1
+                    }}
+                >
+
                     {peers.map((p) => (
+
                         <Box
                             key={p.id}
                             onClick={() => setSelectedPeer(p)}
@@ -145,18 +206,29 @@ export default function App() {
                                     selectedPeer?.id === p.id
                                         ? "#2563eb"
                                         : "#1a1a1a",
-                                "&:hover": { opacity: 0.8 },
+                                "&:hover": {
+                                    opacity: 0.8
+                                },
                             }}
                         >
+
                             <Typography variant="caption">
                                 {p.id}
                             </Typography>
+
+
                         </Box>
+
                     ))}
+
+
                 </Box>
+
+
             </Box>
 
-            {/* CHAT */}
+
+
             <Box
                 sx={{
                     flex: 1,
@@ -165,6 +237,7 @@ export default function App() {
                     alignItems: "center",
                 }}
             >
+
                 <Paper
                     elevation={10}
                     sx={{
@@ -178,22 +251,40 @@ export default function App() {
                         background: "#121212",
                     }}
                 >
-                    {/* HEADER */}
+
                     <Box sx={{ p: 2, borderBottom: "1px solid #222" }}>
+
                         <Typography variant="caption" sx={{ color: "#fff" }}>
                             Total Order Multicast Chat
                         </Typography>
 
-                        <Typography variant="caption" sx={{ color: "#888", display: "block" }}>
+
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: "#888",
+                                display: "block"
+                            }}
+                        >
                             Usuário: {senderId}
                         </Typography>
 
-                        <Typography variant="caption" sx={{ color: "#888", display: "block" }}>
+
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: "#888",
+                                display: "block"
+                            }}
+                        >
                             Peer: {selectedPeer?.id ?? "nenhum"}
                         </Typography>
+
+
                     </Box>
 
-                    {/* MESSAGES */}
+
+
                     <Box
                         sx={{
                             flex: 1,
@@ -204,8 +295,16 @@ export default function App() {
                             gap: 1.2,
                         }}
                     >
+
                         {messages.map((msg) => (
-                            <Box key={msg.id} sx={{ display: "flex" }}>
+
+                            <Box
+                                key={msg.id}
+                                sx={{
+                                    display: "flex"
+                                }}
+                            >
+
                                 <Box
                                     sx={{
                                         maxWidth: "75%",
@@ -215,21 +314,37 @@ export default function App() {
                                         color: "white",
                                     }}
                                 >
-                                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
+
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            opacity: 0.7
+                                        }}
+                                    >
                                         {msg.senderId}
                                     </Typography>
+
 
                                     <Typography variant="body2">
                                         {msg.content}
                                     </Typography>
+
+
                                 </Box>
+
+
                             </Box>
+
                         ))}
 
-                        <div ref={bottomRef} />
+
+                        <div ref={bottomRef}/>
+
+
                     </Box>
 
-                    {/* INPUT */}
+
+
                     <Box
                         sx={{
                             display: "flex",
@@ -239,22 +354,36 @@ export default function App() {
                             background: "#1a1a1a",
                         }}
                     >
+
                         <TextField
                             fullWidth
                             size="small"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter") sendMessage();
+
+                                if (e.key === "Enter") {
+                                    sendMessage();
+                                }
+
                             }}
                             sx={{
-                                input: { color: "white" },
+                                input: {
+                                    color: "white"
+                                },
+
                                 "& .MuiOutlinedInput-root": {
                                     color: "white",
-                                    "& fieldset": { borderColor: "#333" },
+
+                                    "& fieldset": {
+                                        borderColor: "#333"
+                                    },
+
                                 },
+
                             }}
                         />
+
 
                         <Button
                             variant="contained"
@@ -266,9 +395,18 @@ export default function App() {
                         >
                             Send
                         </Button>
+
+
                     </Box>
+
+
                 </Paper>
+
+
             </Box>
+
+
         </Box>
+
     );
 }
