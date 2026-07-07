@@ -13,7 +13,7 @@ type Peer = {
     port: number;
 };
 
-const SEQUENCER_URL = "http://localhost:60001";
+const SEQUENCER_URL = "http://localhost:60000";
 
 export default function App() {
     const [messages, setMessages] = useState<Message[]>([]);

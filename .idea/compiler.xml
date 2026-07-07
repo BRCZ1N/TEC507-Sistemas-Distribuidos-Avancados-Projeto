@@ -8,10 +8,10 @@
         <outputRelativeToContentRoot value="true" />
         <module name="chat" />
         <module name="peer" />
-        <module name="sequencer" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="sequencer" target="17" />
       <module name="spring" target="17" />
       <module name="spring (1)" target="17" />
       <module name="spring (1) (chat.sda)" target="17" />
