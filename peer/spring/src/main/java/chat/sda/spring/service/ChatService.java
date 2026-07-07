@@ -30,6 +30,9 @@ public class ChatService {
     private final Map<String, ConcurrentLinkedQueue<ProposalMessage>> proposalMap;
     private final Map<String, ArrayList<Node>> messageGroups;
     private final Queue<ChatMessage> deliveredMessages;
+    private final PriorityQueue<ChatMessage> orderedQueue;
+    private long lastDeliveredSequence = -1;
+    private long lastDeliveredProposer = -1;
     private final GroupService groupService;
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
     private final RestTemplate rest = new RestTemplate();
@@ -43,6 +46,7 @@ public class ChatService {
         this.proposalMap = new ConcurrentHashMap<>();
         this.messageGroups = new ConcurrentHashMap<>();
         this.deliveredMessages = new ConcurrentLinkedQueue<>();
+        this.orderedQueue = new PriorityQueue<>(Comparator.comparingLong(ChatMessage::getSequenceNumber).thenComparingLong(ChatMessage::getProcessProposerId));
         this.groupService = groupService;
         this.nodeConfig = nodeConfig;
     }
@@ -53,7 +57,7 @@ public class ChatService {
 
         ArrayList<Node> currentView = groupService.getGroup();
 
-        messageGroups.put(message.getId(), currentView);
+        messageGroups.put(message.getId(), new ArrayList<>(currentView));
         log.info(
                 "Multicast iniciado -> MessageId: {} | Sender: {} | ViewSize: {} | View: {}",
                 message.getId(),
@@ -128,7 +132,7 @@ public class ChatService {
         return proposalMessage;
     }
 
-    private void checkAndSendAgreement(String messageId) {
+    private synchronized void checkAndSendAgreement(String messageId) {
 
         ConcurrentLinkedQueue<ProposalMessage> proposals = proposalMap.get(messageId);
 
@@ -219,6 +223,10 @@ public class ChatService {
         refreshMessage.setSequenceNumber(agreement.getSequenceNumber());
         refreshMessage.setProcessProposerId(agreement.getProcessProposerId());
         refreshMessage.setDeliverable(true);
+
+        orderedQueue.offer(refreshMessage);
+
+
         log.info(
                 "Agreement recebido -> MessageId: {} | SequenceFinal: {} | ProposerFinal: {}",
                 agreement.getMessageId(),
@@ -231,14 +239,31 @@ public class ChatService {
 
     public synchronized void refreshMessages() {
 
-        Optional<ChatMessage> next = holdBackQueue.values().stream().filter(ChatMessage::getDeliverable).min(Comparator.comparingLong(ChatMessage::getSequenceNumber).thenComparingLong(ChatMessage::getProcessProposerId));
+        while (!orderedQueue.isEmpty()) {
 
-        if (next.isPresent()) {
+            ChatMessage message = orderedQueue.peek();
 
-            ChatMessage message = next.get();
+            long sequence = message.getSequenceNumber();
+            long proposer = message.getProcessProposerId();
+
+            boolean isAfterLastDelivered =
+                    sequence > lastDeliveredSequence ||
+                            (sequence == lastDeliveredSequence && proposer > lastDeliveredProposer);
+
+
+            if (!isAfterLastDelivered) {
+                return;
+            }
+
+
+            orderedQueue.poll();
 
             deliveredMessages.add(message);
             holdBackQueue.remove(message.getId());
+
+            lastDeliveredSequence = sequence;
+            lastDeliveredProposer = proposer;
+
 
             log.info(
                     "Mensagem entregue -> MessageId: {} | Conteúdo: {} | Sequence: {} | Sender: {} | Proposer: {}",
@@ -248,9 +273,7 @@ public class ChatService {
                     message.getSenderId(),
                     message.getProcessProposerId()
             );
-
         }
-
     }
 
     public synchronized Queue<ChatMessage> getMessages() {

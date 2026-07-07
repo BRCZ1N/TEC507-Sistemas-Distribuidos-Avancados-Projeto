@@ -1,5 +1,4 @@
 package chat.sda.spring.service;
-import chat.sda.spring.model.ChatMessage;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.utils.NodeConfig;
 import org.slf4j.Logger;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,7 +55,7 @@ public class GroupService {
             String hostBase = nodeConfig.getHostBase();
 
             int firstPort = 60000;
-            int lastPort = 60050;
+            int lastPort = 60010;
 
             for (int port = firstPort; port <= lastPort; port++) {
 
@@ -76,6 +74,7 @@ public class GroupService {
                         break;
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
                     log.warn("Porta não alocada ou não encontrada");
                 }
             }
