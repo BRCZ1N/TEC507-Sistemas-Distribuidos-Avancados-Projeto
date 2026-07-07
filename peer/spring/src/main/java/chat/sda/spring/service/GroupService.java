@@ -61,7 +61,7 @@ public class GroupService {
 
             for (int port = firstPort; port <= lastPort; port++) {
 
-                if (port == nodeConfig.getSelf().getPort()) continue;
+                if (port == nodeConfig.getSelf().getPort() && nodeConfig.getHostBase().equals(nodeConfig.getSelf().getHost())) continue;
 
                 try {
 
