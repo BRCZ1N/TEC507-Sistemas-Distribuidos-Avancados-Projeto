@@ -54,7 +54,7 @@ public class GroupService {
         executor.submit(() -> {
             log.info("Iniciando varredura no intervalo de portas para descobrir o líder...");
 
-            String hostBase = "http://localhost:";
+            String hostBase = nodeConfig.getHostBase();
 
             int firstPort = 60000;
             int lastPort = 60050;

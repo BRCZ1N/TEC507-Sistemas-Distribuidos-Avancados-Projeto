@@ -20,6 +20,13 @@ public class NodeConfig {
 
     private Node self;
 
+    @Value("${discovery.host-base}")
+    private String hostBase;
+
+    public String getHostBase() {
+        return hostBase;
+    }
+
     @EventListener(WebServerInitializedEvent.class)
     public void onWebServerReady(WebServerInitializedEvent event) throws UnknownHostException {
         

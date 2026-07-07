@@ -1,60 +1,94 @@
-# 📡 Total Order Multicast com Sequencer
+# 📡 Total Order Multicast com ISIS
 
-Este projeto implementa um sistema de **Total Order Multicast** baseado em um **sequenciador central**, garantindo que todas as mensagens sejam entregues na mesma ordem em todos os peers.
+Este projeto implementa um sistema distribuído de **Total Order Multicast** utilizando o algoritmo **ISIS (Isis Total Ordering Algorithm)**, garantindo que todas as mensagens sejam entregues na mesma ordem em todos os processos do grupo.
+
+Além do algoritmo ISIS, o sistema utiliza o **algoritmo Bully** para eleição de líder, responsável apenas pelo gerenciamento da visão do grupo (membership). A ordenação das mensagens permanece totalmente descentralizada.
 
 ---
 
 # 🧠 Visão Geral
 
-O sistema é composto por:
+O sistema é composto por um conjunto de peers que participam de um grupo distribuído.
 
-- **Sequencer (P1)** → responsável por ordenar globalmente as mensagens
-- **Peers (P2, P3, P4, ...)** → enviam e recebem mensagens
+Cada peer é responsável por:
 
-📌 Objetivo: garantir **ordem total global** das mensagens.
+- Enviar mensagens ao grupo;
+- Propor números de sequência;
+- Participar da definição da ordem final das mensagens;
+- Entregar as mensagens na mesma ordem que todos os demais peers.
+
+O líder eleito pelo algoritmo Bully possui apenas funções administrativas relacionadas ao grupo, como entrada, saída e detecção de falhas dos participantes.
 
 ---
 
 # 🏗️ Arquitetura
 
-        P2 ----\
-        P3 ----- >  Sequencer (P1) ----> Broadcast ordenado
-        P4 ----/
+```
+                 +---------+
+                 | Peer 1  |
+                 +---------+
+                /    |    \
+               /     |     \
+              /      |      \
+      +---------+ +---------+ +---------+
+      | Peer 2  | | Peer 3  | | Peer 4  |
+      +---------+ +---------+ +---------+
 
-Fluxo:
-1. Peer envia mensagem
-2. Sequencer recebe
-3. Sequencer atribui número de sequência global (S1, S2, S3...)
-4. Sequencer envia para todos os peers
-5. Todos entregam na mesma ordem
+        Todos executam o algoritmo ISIS
+      O líder apenas mantém a visão do grupo
+```
 
 ---
 
-# 🌐 Descobrir IP da máquina
+# ⚙️ Funcionamento
 
-## 🪟 Windows
+Quando um peer deseja enviar uma mensagem:
+
+1. Captura a visão atual do grupo.
+2. Envia a mensagem para todos os membros dessa visão.
+3. Cada peer gera uma proposta de número de sequência.
+4. O sender aguarda todas as propostas da visão capturada.
+5. A maior proposta é escolhida como sequência final.
+6. O sender envia o Agreement para todos os membros da mesma visão.
+7. Cada peer marca a mensagem como entregável.
+8. As mensagens são liberadas em ordem total.
+
+A visão utilizada durante o envio permanece fixa até o término do protocolo daquela mensagem. Dessa forma, alterações no grupo durante a execução não afetam mensagens já iniciadas.
+
+---
+
+# 👥 Gerenciamento do Grupo
+
+O gerenciamento da visão do grupo é independente do protocolo ISIS.
+
+O algoritmo Bully é utilizado para:
+
+- Eleição de líder;
+- Entrada de novos peers;
+- Remoção de peers que falharem;
+- Manutenção de uma visão consistente do grupo.
+
+Mudanças na visão afetam apenas mensagens futuras.
+
+---
+
+# 🌐 Descobrindo o IP da máquina
+
+## Windows
 
 ```bash
 ipconfig
 ```
 
-Procure:
+Procure pelo endereço IPv4.
 
-```
-IPv4 Address. . . . . . . . . . . : 192.168.0.149
-```
-
----
-
-## 🐧 Linux
+## Linux
 
 ```bash
 hostname -I
 ```
 
----
-
-## 🍎 MacOS
+## macOS
 
 ```bash
 ifconfig
@@ -66,146 +100,134 @@ ou
 ipconfig getifaddr en0
 ```
 
----
-
-📌 IMPORTANTE:
-- Use o IP real da máquina (não 127.0.0.1)
-- Todos os peers e sequencer devem estar na mesma rede
-- Verifique firewall se não conectar
+Utilize sempre o IP da rede local e nunca `127.0.0.1`.
 
 ---
 
 # ⚙️ Configuração
 
-## 🔴 Sequencer (P1)
+Exemplo do `application.properties`:
 
 ```properties
-spring.application.name=sequencer
-node.id=P1
+spring.application.name=peer
+
+node.id=1
 node.host=192.168.0.149
+
 server.port=60000
 ```
 
----
+Cada peer deve possuir:
 
-## 🔵 Peer (ex: P2)
-
-```properties
-spring.application.name=spring
-node.id=P2
-node.host=192.168.0.149
-server.port=0
-
-sequencer.id=P1
-sequencer.host=192.168.0.149
-sequencer.port=60000
-```
+- `node.id` único;
+- Porta diferente;
+- IP correspondente à máquina onde está executando.
 
 ---
 
-# 🚀 COMANDOS DE EXECUÇÃO
+# 🚀 Execução
 
-## 1️⃣ Subir o Sequencer
+Exemplo de inicialização dos peers:
 
 ```bash
-java -jar sequencer.jar
-```
-
-📌 Deve ser iniciado primeiro.
-
----
-
-## 2️⃣ Subir os Peers
-
-Em terminais separados:
-
-```bash
-java -jar peer.jar --node.id=P2
+java -jar peer.jar --node.id=1 --server.port=60000
 ```
 
 ```bash
-java -jar peer.jar --node.id=P3
+java -jar peer.jar --node.id=2 --server.port=60001
 ```
 
 ```bash
-java -jar peer.jar --node.id=P4
+java -jar peer.jar --node.id=3 --server.port=60002
 ```
-
-📌 Cada peer deve ter um ID único.
-
----
-
-## 💡 Exemplo completo de execução
 
 ```bash
-# Terminal 1
-java -jar sequencer.jar
-
-# Terminal 2
-java -jar peer.jar --node.id=P2
-
-# Terminal 3
-java -jar peer.jar --node.id=P3
-
-# Terminal 4
-java -jar peer.jar --node.id=P4
+java -jar peer.jar --node.id=4 --server.port=60003
 ```
 
----
-
-# 📤 Fluxo de mensagens
-
-P2 envia "A"  
-P3 envia "B"
-
-Sequencer ordena:
-
-S1 → A  
-S2 → B
-
-Todos recebem:
-
-A → B
+Após iniciar, cada peer ingressa automaticamente no grupo por meio do serviço de gerenciamento.
 
 ---
 
-# 📌 Garantias
+# 📤 Exemplo de execução
 
-✔ Ordem total global  
-✔ Todos veem a mesma sequência  
-✔ Independência da ordem de envio  
-✔ Entrega confiável via sequencer
+Considere duas mensagens enviadas simultaneamente.
+
+Peer 2 envia:
+
+```
+A
+```
+
+Peer 3 envia:
+
+```
+B
+```
+
+Cada peer gera sua proposta de sequência.
+
+Após receber todas as propostas da visão utilizada no envio, o sender escolhe a maior sequência e envia o Agreement.
+
+Todos os peers entregarão exatamente a mesma ordem.
+
+Exemplo:
+
+```
+A
+B
+```
+
+ou
+
+```
+B
+A
+```
+
+A ordem pode variar entre execuções, mas será idêntica em todos os processos.
 
 ---
 
-# ⚠️ Problemas comuns
+# ✅ Garantias
 
-## ❌ Peer não conecta
-- Verificar IP com `ipconfig`
-- Verificar firewall
-- Verificar mesma rede
+O sistema fornece:
 
----
-
-## ❌ Sequencer não responde
-- Porta 60000 livre
-- IP correto configurado
+- Ordem Total (Total Order)
+- Entrega consistente entre todos os peers
+- Ausência de sequenciador central
+- Ordenação distribuída
+- Gerenciamento consistente da visão do grupo
+- Eleição automática de líder utilizando Bully
 
 ---
 
-## ❌ Ordem quebrada
-- Reiniciar sequencer e peers juntos
+# ⚠️ Limitações
+
+- O sender somente envia o Agreement após receber todas as propostas da visão utilizada durante o envio.
+- Alterações na composição do grupo não interferem em mensagens já iniciadas.
+- A nova visão passa a valer apenas para mensagens futuras.
 
 ---
 
-# 💡 Observação importante
+# 📁 Estrutura do Projeto
 
-O sequencer é um **ponto único de falha**:
-- Se cair, o sistema inteiro para
-- Simplicidade em troca de centralização
+```
+controller/
+dto/
+model/
+service/
+utils/
+```
+
+Principais componentes:
+
+- **ChatService** → Implementação do protocolo ISIS.
+- **GroupService** → Gerenciamento da visão do grupo.
+- **Bully** → Eleição de líder.
 
 ---
 
-# 🧪 Resumo final
+# 📝 Resumo
 
-O sistema garante ordenação total usando um sequencer central que atribui números sequenciais às mensagens e distribui para todos os peers, garantindo consistência global.
+Este projeto implementa um Total Order Multicast baseado no algoritmo ISIS. A ordenação das mensagens ocorre de forma totalmente distribuída, sem um sequenciador central. O gerenciamento da visão do grupo é realizado separadamente utilizando o algoritmo Bully, garantindo que mudanças na composição do grupo não afetem mensagens que já estejam em processamento.
