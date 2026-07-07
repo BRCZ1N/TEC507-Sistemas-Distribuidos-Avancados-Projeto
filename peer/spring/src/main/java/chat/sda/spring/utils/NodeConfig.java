@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
 public class NodeConfig {
 
     @Value("${node.id}")
-    private String id;
+    private Long id;
 
     @Value("${node.host}")
     private String host;

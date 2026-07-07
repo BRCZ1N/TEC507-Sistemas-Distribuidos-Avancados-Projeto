@@ -2,52 +2,30 @@ package chat.sda.spring.dto;
 
 import jakarta.validation.constraints.NotNull;
 
-public class ChatMessageDTO {
+public class ProposalMessageDTO {
 
     @NotNull
-    private String senderId;
+    private String messageId;
     @NotNull
-    private String id;
-    @NotNull
-    private String content;
     private Long sequenceNumber;
     @NotNull
     private Long processSenderId;
-    private Long processProposerId;
     @NotNull
-    private Boolean isDeliverable;
+    private Long processProposerId;
 
-
-    public Boolean getDeliverable() {
-        return isDeliverable;
+    public ProposalMessageDTO(String messageId, Long sequenceNumber, Long processSenderId, Long processProposerId) {
+        this.messageId = messageId;
+        this.sequenceNumber = sequenceNumber;
+        this.processSenderId = processSenderId;
+        this.processProposerId = processProposerId;
     }
 
-    public void setDeliverable(Boolean deliverable) {
-        isDeliverable = deliverable;
+    public String getMessageId() {
+        return messageId;
     }
 
-    public String getSenderId() {
-        return senderId;
-    }
-
-    public void setSenderId(String senderId) {
-        this.senderId = senderId;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 
     public Long getSequenceNumber() {
