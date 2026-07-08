@@ -13,9 +13,10 @@ type Peer = {
     port: number;
 };
 
-const SEQUENCER_URL = "http://localhost:60000";
+const SEQUENCER_URL = "http://192.168.1.107:60000";
 
 export default function App() {
+
     const [messages, setMessages] = useState<Message[]>([]);
     const [peers, setPeers] = useState<Peer[]>([]);
     const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
@@ -24,20 +25,28 @@ export default function App() {
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const previousMessageCount = useRef(0);
 
+
     const [senderId] = useState(() => {
+
         const saved = localStorage.getItem("guestId");
 
         if (saved) return saved;
 
-        const id = `Guest-${Math.random().toString(36).substring(2, 8)}`;
+        const id = `Guest-${Math.random()
+            .toString(36)
+            .substring(2, 8)}`;
+
         localStorage.setItem("guestId", id);
 
         return id;
     });
 
 
+
     const getPeers = async () => {
+
         try {
+
             const res = await fetch(`${SEQUENCER_URL}/group`);
             const data = await res.json();
 
@@ -45,16 +54,20 @@ export default function App() {
                 setPeers(data);
             }
 
-        } catch (err) {
-            console.log("Erro getPeers:", err);
+        } catch(err) {
+            console.log(err);
         }
+
     };
 
 
+
     const fetchMessages = async () => {
+
         if (!selectedPeer) return;
 
         try {
+
             const res = await fetch(
                 `http://${selectedPeer.host}:${selectedPeer.port}/chat/messages`
             );
@@ -63,27 +76,33 @@ export default function App() {
 
             const data = await res.json();
 
-            if (Array.isArray(data)) {
+            if(Array.isArray(data)) {
 
                 const changed =
                     data.length !== messages.length ||
-                    data[data.length - 1]?.id !== messages[messages.length - 1]?.id;
+                    data[data.length - 1]?.id !==
+                    messages[messages.length - 1]?.id;
 
 
-                if (changed) {
+                if(changed){
                     setMessages(data);
                 }
+
             }
 
-        } catch (err) {
-            console.log("fetch error:", err);
+
+        } catch(err){
+            console.log(err);
         }
+
     };
+
 
 
     const sendMessage = async () => {
 
-        if (!content.trim() || !selectedPeer) return;
+        if(!content.trim() || !selectedPeer)
+            return;
 
 
         try {
@@ -91,14 +110,14 @@ export default function App() {
             await fetch(
                 `http://${selectedPeer.host}:${selectedPeer.port}/chat/message`,
                 {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
+                    method:"POST",
+                    headers:{
+                        "Content-Type":"application/json"
                     },
-                    body: JSON.stringify({
+                    body:JSON.stringify({
                         senderId,
-                        content,
-                    }),
+                        content
+                    })
                 }
             );
 
@@ -108,53 +127,58 @@ export default function App() {
             fetchMessages();
 
 
-        } catch (err) {
-
-            console.log("send error:", err);
-
+        } catch(err){
+            console.log(err);
         }
+
     };
 
 
-    useEffect(() => {
+
+    useEffect(()=>{
         getPeers();
-    }, []);
+    },[]);
 
 
 
-    useEffect(() => {
+    useEffect(()=>{
 
-        if (!selectedPeer) return;
+        if(!selectedPeer)
+            return;
 
 
         fetchMessages();
 
 
-        const interval = setInterval(fetchMessages, 1200);
+        const timer =
+            setInterval(fetchMessages,1200);
 
 
-        return () => clearInterval(interval);
+        return ()=>clearInterval(timer);
 
 
-    }, [selectedPeer, messages]);
+    },[selectedPeer,messages]);
 
 
 
-    useEffect(() => {
+    useEffect(()=>{
 
-        if (messages.length > previousMessageCount.current) {
+        if(messages.length > previousMessageCount.current){
 
             bottomRef.current?.scrollIntoView({
-                behavior: "smooth",
+                behavior:"smooth"
             });
 
         }
 
 
-        previousMessageCount.current = messages.length;
+        previousMessageCount.current =
+            messages.length;
 
 
-    }, [messages]);
+    },[messages]);
+
+
 
 
 
@@ -162,20 +186,26 @@ export default function App() {
 
         <Box
             sx={{
-                height: "100vh",
-                width: "100vw",
-                display: "flex",
-                background: "linear-gradient(180deg, #0b0b0b, #151515)",
+                width:"100%",
+                height:"100dvh",
+                display:"flex",
+                overflow:"hidden",
+                background:
+                    "linear-gradient(180deg,#0b0b0b,#151515)"
             }}
         >
 
             <Box
                 sx={{
-                    width: 220,
-                    borderRight: "1px solid #222",
-                    background: "#0f0f0f",
-                    p: 2,
-                    color: "white",
+                    flex:"0 1 18%",
+                    minWidth:0,
+                    display:"flex",
+                    flexDirection:"column",
+                    p:2,
+                    gap:2,
+                    background:"#0f0f0f",
+                    borderRight:"1px solid #222",
+                    color:"white"
                 }}
             >
 
@@ -186,41 +216,41 @@ export default function App() {
 
                 <Box
                     sx={{
-                        mt: 2,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 1
+                        display:"flex",
+                        flexDirection:"column",
+                        gap:1,
+                        overflow:"auto"
                     }}
                 >
 
-                    {peers.map((p) => (
+                    {
+                        peers.map(peer=>(
 
-                        <Box
-                            key={p.id}
-                            onClick={() => setSelectedPeer(p)}
-                            sx={{
-                                p: 1,
-                                cursor: "pointer",
-                                borderRadius: 1,
-                                background:
-                                    selectedPeer?.id === p.id
-                                        ? "#2563eb"
-                                        : "#1a1a1a",
-                                "&:hover": {
-                                    opacity: 0.8
-                                },
-                            }}
-                        >
+                            <Box
+                                key={peer.id}
+                                onClick={()=>setSelectedPeer(peer)}
+                                sx={{
+                                    p:1,
+                                    cursor:"pointer",
+                                    borderRadius:1,
+                                    background:
+                                        selectedPeer?.id===peer.id
+                                            ?
+                                            "#2563eb"
+                                            :
+                                            "#1a1a1a"
+                                }}
+                            >
 
-                            <Typography variant="caption">
-                                {p.id}
-                            </Typography>
+                                <Typography variant="caption">
+                                    {peer.id}
+                                </Typography>
 
 
-                        </Box>
+                            </Box>
 
-                    ))}
-
+                        ))
+                    }
 
                 </Box>
 
@@ -228,33 +258,46 @@ export default function App() {
             </Box>
 
 
-
             <Box
                 sx={{
-                    flex: 1,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
+                    flex:1,
+                    minWidth:0,
+                    display:"flex",
+                    p:2
                 }}
             >
 
+
                 <Paper
-                    elevation={10}
+
                     sx={{
-                        width: "100%",
-                        maxWidth: 720,
-                        height: "90vh",
-                        display: "flex",
-                        flexDirection: "column",
-                        borderRadius: 3,
-                        overflow: "hidden",
-                        background: "#121212",
+                        flex:1,
+                        minWidth:0,
+                        minHeight:0,
+                        display:"flex",
+                        flexDirection:"column",
+                        overflow:"hidden",
+                        borderRadius:2,
+                        background:"#121212"
                     }}
+
                 >
 
-                    <Box sx={{ p: 2, borderBottom: "1px solid #222" }}>
+                    <Box
+                        sx={{
+                            p:2,
+                            flexShrink:0,
+                            borderBottom:"1px solid #222"
+                        }}
+                    >
 
-                        <Typography variant="caption" sx={{ color: "#fff" }}>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                display: "block",
+                                color: "#fff"
+                            }}
+                        >
                             Total Order Multicast Chat
                         </Typography>
 
@@ -262,8 +305,8 @@ export default function App() {
                         <Typography
                             variant="caption"
                             sx={{
-                                color: "#888",
-                                display: "block"
+                                display: "block",
+                                color: "#888"
                             }}
                         >
                             Usuário: {senderId}
@@ -273,8 +316,8 @@ export default function App() {
                         <Typography
                             variant="caption"
                             sx={{
-                                color: "#888",
-                                display: "block"
+                                display: "block",
+                                color: "#888"
                             }}
                         >
                             Peer: {selectedPeer?.id ?? "nenhum"}
@@ -284,58 +327,61 @@ export default function App() {
                     </Box>
 
 
-
                     <Box
                         sx={{
-                            flex: 1,
-                            overflowY: "auto",
-                            p: 2,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 1.2,
+                            flex:1,
+                            minHeight:0,
+                            overflowY:"auto",
+                            p:2,
+                            display:"flex",
+                            flexDirection:"column",
+                            gap:1
                         }}
                     >
 
-                        {messages.map((msg) => (
-
-                            <Box
-                                key={msg.id}
-                                sx={{
-                                    display: "flex"
-                                }}
-                            >
+                        {
+                            messages.map(msg=>(
 
                                 <Box
+                                    key={msg.id}
                                     sx={{
-                                        maxWidth: "75%",
-                                        p: "10px 12px",
-                                        borderRadius: 2,
-                                        background: "#2a2a2a",
-                                        color: "white",
+                                        maxWidth:"80%",
+                                        wordBreak:"break-word"
                                     }}
                                 >
 
-                                    <Typography
-                                        variant="caption"
+                                    <Box
                                         sx={{
-                                            opacity: 0.7
+                                            p:1.5,
+                                            borderRadius:2,
+                                            background:"#2a2a2a",
+                                            color:"white"
                                         }}
                                     >
-                                        {msg.senderId}
-                                    </Typography>
+
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                opacity:.6
+                                            }}
+                                        >
+                                            {msg.senderId}
+                                        </Typography>
 
 
-                                    <Typography variant="body2">
-                                        {msg.content}
-                                    </Typography>
+                                        <Typography variant="body2">
+                                            {msg.content}
+                                        </Typography>
+
+
+                                    </Box>
 
 
                                 </Box>
 
 
-                            </Box>
-
-                        ))}
+                            ))
+                        }
 
 
                         <div ref={bottomRef}/>
@@ -343,67 +389,84 @@ export default function App() {
 
                     </Box>
 
-
-
                     <Box
+
                         sx={{
-                            display: "flex",
-                            gap: 1,
-                            p: 1.5,
-                            borderTop: "1px solid #222",
-                            background: "#1a1a1a",
+                            display:"flex",
+                            gap:1,
+                            p:1.5,
+                            flexShrink:0,
+                            borderTop:"1px solid #222",
+                            background:"#1a1a1a"
                         }}
+
                     >
 
-                        <TextField
-                            fullWidth
-                            size="small"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            onKeyDown={(e) => {
 
-                                if (e.key === "Enter") {
-                                    sendMessage();
+                        <TextField
+
+                            fullWidth
+
+                            value={content}
+
+                            onChange={
+                                e=>setContent(e.target.value)
+                            }
+
+                            onKeyDown={
+                                e=>{
+                                    if(e.key==="Enter")
+                                        sendMessage();
+                                }
+                            }
+
+                            sx={{
+
+                                input:{
+                                    color:"white"
+                                },
+
+                                "& .MuiOutlinedInput-root":{
+                                    color:"white",
+
+                                    "& fieldset":{
+                                        borderColor:"#333"
+                                    }
+
                                 }
 
                             }}
-                            sx={{
-                                input: {
-                                    color: "white"
-                                },
 
-                                "& .MuiOutlinedInput-root": {
-                                    color: "white",
-
-                                    "& fieldset": {
-                                        borderColor: "#333"
-                                    },
-
-                                },
-
-                            }}
                         />
 
 
+
                         <Button
+
                             variant="contained"
+
                             onClick={sendMessage}
+
                             sx={{
-                                background: "#2563eb",
-                                textTransform: "none",
+                                flex:"0 0 auto",
+                                background:"#2563eb"
                             }}
+
                         >
                             Send
+
                         </Button>
 
 
                     </Box>
 
 
+
                 </Paper>
 
 
             </Box>
+
 
 
         </Box>

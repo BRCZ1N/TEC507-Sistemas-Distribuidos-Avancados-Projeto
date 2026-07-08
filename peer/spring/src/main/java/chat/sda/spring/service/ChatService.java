@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class ChatService {
 
-    private final AtomicLong rg;
+    private final AtomicLong clock;
     private final NodeConfig nodeConfig;
     private final Map<String, ChatMessage> holdBackQueue;
     private final Map<String, ConcurrentLinkedQueue<ProposalMessage>> proposalMap;
@@ -38,7 +38,7 @@ public class ChatService {
 
     public ChatService(GroupService groupService, NodeConfig nodeConfig) {
 
-        this.rg = new AtomicLong(0);
+        this.clock = new AtomicLong(0);
         this.holdBackQueue = new ConcurrentHashMap<>();
         this.proposalMap = new ConcurrentHashMap<>();
         this.messageGroups = new ConcurrentHashMap<>();
@@ -110,7 +110,7 @@ public class ChatService {
     public synchronized ProposalMessage createProposal(ChatMessage message) {
 
         holdBackQueue.put(message.getId(), message);
-        ProposalMessage proposalMessage = new ProposalMessage(message.getId(), rg.incrementAndGet(), nodeConfig.getSelf().getId());
+        ProposalMessage proposalMessage = new ProposalMessage(message.getId(), clock.incrementAndGet(), nodeConfig.getSelf().getId());
         log.info(
                 "Proposta criada -> MessageId: {} | Sequence: {} | ProposerId: {} | Node: {}",
                 proposalMessage.getMessageId(),
@@ -209,7 +209,7 @@ public class ChatService {
 
     public synchronized void receiveAgreement(AgreementMessageDTO agreement) {
 
-        rg.updateAndGet(current -> Math.max(current, agreement.getSequenceNumber()) + 1);
+        clock.updateAndGet(current -> Math.max(current, agreement.getSequenceNumber()) + 1);
         ChatMessage refreshMessage = holdBackQueue.get(agreement.getMessageId());
 
         if (refreshMessage == null) {
