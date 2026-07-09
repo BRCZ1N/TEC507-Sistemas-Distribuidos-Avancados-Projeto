@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Component
 public class NodeConfig {
@@ -18,14 +21,11 @@ public class NodeConfig {
     @Value("${node.host}")
     private String host;
 
+    @Value("${node.peers}")
+    private String peersRaw;
+
     private Node self;
-
-    @Value("${discovery.host-base}")
-    private String hostBase;
-
-    public String getHostBase() {
-        return hostBase;
-    }
+    private List<Node> peers;
 
     @EventListener(WebServerInitializedEvent.class)
     public void onWebServerReady(WebServerInitializedEvent event) throws UnknownHostException {
@@ -37,9 +37,41 @@ public class NodeConfig {
         }
 
         self = new Node(id, host, port);
+        peers = parsePeers(peersRaw);
+    }
+
+    private List<Node> parsePeers(String raw) {
+
+        List<Node> result = new ArrayList<>();
+
+        if (raw == null || raw.isBlank()) {
+            return result;
+        }
+
+        for (String entry : raw.split(",")) {
+
+            String[] parts = entry.trim().split(":");
+
+            Long peerId = Long.valueOf(parts[0]);
+            String peerHost = parts[1];
+
+            Integer peerPort = null;
+
+            if (parts.length >= 3 && !parts[2].isBlank()) {
+                peerPort = Integer.parseInt(parts[2]);
+            }
+
+            result.add(new Node(peerId, peerHost, peerPort));
+        }
+
+        return result;
     }
 
     public Node getSelf() {
         return self;
+    }
+
+    public List<Node> getPeers() {
+        return Collections.unmodifiableList(peers);
     }
 }

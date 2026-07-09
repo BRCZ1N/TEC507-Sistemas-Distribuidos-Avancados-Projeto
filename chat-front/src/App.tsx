@@ -13,7 +13,7 @@ type Peer = {
     port: number;
 };
 
-const SEQUENCER_URL = "http://192.168.1.107:60000";
+const SEQUENCER_URL = "http://192.168.1.107:60001";
 
 export default function App() {
 
@@ -47,7 +47,7 @@ export default function App() {
 
         try {
 
-            const res = await fetch(`${SEQUENCER_URL}/group`);
+            const res = await fetch(`${SEQUENCER_URL}/chat/nodes`);
             const data = await res.json();
 
             if (Array.isArray(data)) {

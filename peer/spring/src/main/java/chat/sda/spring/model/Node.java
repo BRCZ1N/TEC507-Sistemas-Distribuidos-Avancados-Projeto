@@ -4,9 +4,9 @@ public class Node {
 
     private final Long id;
     private final String host;
-    private final int port;
+    private final Integer port;
 
-    public Node(Long id, String host, int port) {
+    public Node(Long id, String host, Integer port) {
         this.id = id;
         this.host = host;
         this.port = port;
@@ -20,7 +20,7 @@ public class Node {
         return host;
     }
 
-    public int getPort() {
+    public Integer getPort() {
         return port;
     }
 

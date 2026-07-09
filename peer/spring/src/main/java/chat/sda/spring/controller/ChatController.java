@@ -4,6 +4,7 @@ import chat.sda.spring.dto.AgreementMessageDTO;
 import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.dto.SendMessageDTO;
 import chat.sda.spring.model.ChatMessage;
+import chat.sda.spring.model.Node;
 import chat.sda.spring.model.ProposalMessage;
 import chat.sda.spring.service.ChatService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Queue;
 
 @CrossOrigin(origins = "*")
@@ -83,6 +85,19 @@ public class ChatController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
+    }
+
+    @GetMapping("/nodes")
+    public List<Node> getNodes() {
+        return chatService.getPeers();
+    }
+
+    @PostMapping("/abort/{messageId}")
+    public ResponseEntity<Void> receiveAbort(@PathVariable String messageId) {
+
+        chatService.receiveAbort(messageId);
+
+        return ResponseEntity.ok().build();
     }
 
 }
