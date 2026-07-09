@@ -10,10 +10,24 @@ type Message = {
 type Peer = {
     id: string;
     host: string;
-    port: number;
+    port: number | null;
 };
 
-const SEQUENCER_URL = "http://192.168.1.107:60001";
+
+const USE_HTTPS = true;
+
+
+const SEQUENCER_URL = "https://tec507-sistemas-distribuidos-avancados.onrender.com";
+
+
+const buildUrl = (host: string, port: number | null) => {
+
+    if (USE_HTTPS) {
+        return `https://${host}`;
+    }
+
+    return `http://${host}:${port}`;
+};
 
 export default function App() {
 
@@ -69,7 +83,7 @@ export default function App() {
         try {
 
             const res = await fetch(
-                `http://${selectedPeer.host}:${selectedPeer.port}/chat/messages`
+                `${buildUrl(selectedPeer.host, selectedPeer.port)}/chat/messages`
             );
 
             if (!res.ok) return;
@@ -87,7 +101,6 @@ export default function App() {
                 if(changed){
                     setMessages(data);
                 }
-
             }
 
 
@@ -96,8 +109,6 @@ export default function App() {
         }
 
     };
-
-
 
     const sendMessage = async () => {
 
@@ -108,7 +119,7 @@ export default function App() {
         try {
 
             await fetch(
-                `http://${selectedPeer.host}:${selectedPeer.port}/chat/message`,
+                `${buildUrl(selectedPeer.host, selectedPeer.port)}/chat/message`,
                 {
                     method:"POST",
                     headers:{
