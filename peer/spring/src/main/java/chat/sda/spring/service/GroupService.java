@@ -1,5 +1,5 @@
 package chat.sda.spring.service;
-import chat.sda.spring.model.ChatMessage;
+
 import chat.sda.spring.model.Node;
 import chat.sda.spring.utils.NodeConfig;
 import org.slf4j.Logger;
@@ -10,9 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class GroupService {
 
-    private final Map<Long,Node> group;
+    private final Map<Long, Node> group;
     private Node currentLeader;
     private final NodeConfig nodeConfig;
     private static final Logger log = LoggerFactory.getLogger(GroupService.class);
@@ -41,11 +41,11 @@ public class GroupService {
         return new ArrayList<>(group.values());
     }
 
-    public Node getLeader(){
+    public Node getLeader() {
         return currentLeader;
     }
 
-    public void refreshCoordinator(Node newCoordinator){
+    public void refreshCoordinator(Node newCoordinator) {
         this.currentLeader = newCoordinator;
     }
 
@@ -65,10 +65,7 @@ public class GroupService {
 
                 try {
 
-                    ResponseEntity<Node> response = rest.getForEntity(
-                            "http://" + hostBase + ":" + port + "/group/leader",
-                            Node.class
-                    );
+                    ResponseEntity<Node> response = rest.getForEntity("http://" + hostBase + ":" + port + "/group/leader", Node.class);
 
                     if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                         this.currentLeader = response.getBody();
@@ -96,11 +93,7 @@ public class GroupService {
         try {
             log.info("Se registrando no líder (Nó {} em {})", currentLeader.getId(), urlLeader);
 
-            rest.postForEntity(
-                    urlLeader + "/group/join",
-                    nodeConfig.getSelf(),
-                    Void.class
-            );
+            rest.postForEntity(urlLeader + "/group/join", nodeConfig.getSelf(), Void.class);
         } catch (Exception e) {
             log.error("Líder caiu ao tentar o registro. Disparando eleição.");
             initBullyVote();
@@ -122,14 +115,10 @@ public class GroupService {
             }
             executor.submit(() -> {
                 try {
-                    rest.postForEntity(
-                            "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh",
-                            new ArrayList<>(group.values()),
-                            Void.class
-                    );
+                    rest.postForEntity("http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh", new ArrayList<>(group.values()), Void.class);
 
                 } catch (Exception e) {
-                    log.warn("Falha ao enviar para o Id:{}",currentNode.getId());
+                    log.warn("Falha ao enviar para o Id:{}", currentNode.getId());
                 }
             });
         }
@@ -149,11 +138,7 @@ public class GroupService {
             }
             executor.submit(() -> {
                 try {
-                    rest.postForEntity(
-                            "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh",
-                            new ArrayList<>(group.values()),
-                            Void.class
-                    );
+                    rest.postForEntity("http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/refresh", new ArrayList<>(group.values()), Void.class);
 
                 } catch (Exception e) {
                     log.warn("Falha ao enviar para o Id:{}", currentNode.getId());
@@ -197,31 +182,15 @@ public class GroupService {
                         higherNodeFound = true;
 
                         try {
-                            log.info(
-                                    "[BULLY] Desafiando Nó Maior -> ID {} na porta {}",
-                                    remoteNode.getId(),
-                                    remoteNode.getPort()
-                            );
+                            log.info("[BULLY] Desafiando Nó Maior -> ID {} na porta {}", remoteNode.getId(), remoteNode.getPort());
 
-                            rest.postForEntity(
-                                    "http://"
-                                            + remoteNode.getHost()
-                                            + ":"
-                                            + remoteNode.getPort()
-                                            + "/group/election?senderNode="
-                                            + nodeConfig.getSelf().getId(),
-                                    null,
-                                    Void.class
-                            );
+                            rest.postForEntity("http://" + remoteNode.getHost() + ":" + remoteNode.getPort() + "/group/election?senderNode=" + nodeConfig.getSelf().getId(), null, Void.class);
 
                             receivedOk.set(true);
 
                         } catch (Exception e) {
 
-                            log.warn(
-                                    "[BULLY] Nó {} não respondeu ao ELECTION.",
-                                    remoteNode.getId()
-                            );
+                            log.warn("[BULLY] Nó {} não respondeu ao ELECTION.", remoteNode.getId());
                         }
                     }
                 }
@@ -230,7 +199,8 @@ public class GroupService {
 
                     try {
                         Thread.sleep(1000);
-                    } catch (InterruptedException ignored) {}
+                    } catch (InterruptedException ignored) {
+                    }
 
                 }
 
@@ -258,25 +228,17 @@ public class GroupService {
         for (Node currentNode : group.values()) {
 
             if (currentNode.equals(nodeConfig.getSelf())) {
-                    continue;
+                continue;
             }
             executor.submit(() -> {
                 try {
-                    rest.postForEntity(
-                            "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/coordinator",
-                            nodeConfig.getSelf(),
-                            Void.class
-                    );
+                    rest.postForEntity("http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/coordinator", nodeConfig.getSelf(), Void.class);
 
                 } catch (Exception e) {
                     try {
                         log.warn("Falha ao anunciar coordenação para o nó {}. Nova tentativa...", currentNode.getId());
                         Thread.sleep(500);
-                        rest.postForEntity(
-                                "http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/coordinator",
-                                nodeConfig.getSelf(),
-                                Void.class
-                        );
+                        rest.postForEntity("http://" + currentNode.getHost() + ":" + currentNode.getPort() + "/group/coordinator", nodeConfig.getSelf(), Void.class);
                     } catch (Exception e1) {
                         log.warn("Nó {} removido do grupo após duas falhas.", currentNode.getId());
                         reportNode(currentNode);
@@ -286,23 +248,19 @@ public class GroupService {
         }
     }
 
-    public void reportNode(Node node){
+    public void reportNode(Node node) {
 
         executor.submit(() -> {
-           try{
-               rest.getForEntity(
-                       "http://" + node.getHost() + ":" + node.getPort() + "/group/heartbeat",
-                       Void.class
-               );
-               log.info("Nó {} respondeu ao heartbeat. Mantendo no grupo.", node.getId());
-           }catch (Exception e){
-               log.warn("Nó {} confirmado como falho.", node.getId());
-               removeNode(node.getId());
-           }
+            try {
+                rest.getForEntity("http://" + node.getHost() + ":" + node.getPort() + "/group/heartbeat", Void.class);
+                log.info("Nó {} respondeu ao heartbeat. Mantendo no grupo.", node.getId());
+            } catch (Exception e) {
+                log.warn("Nó {} confirmado como falho.", node.getId());
+                removeNode(node.getId());
+            }
         });
 
     }
-
 
 
     @Scheduled(fixedDelay = 2000)
@@ -314,15 +272,12 @@ public class GroupService {
             return;
         }
 
-        log.info("Lider local: Id: {} - Ip: {} - Porta: {}", leader.getId(),leader.getHost(),leader.getPort());
+        log.info("Lider local: Id: {} - Ip: {} - Porta: {}", leader.getId(), leader.getHost(), leader.getPort());
         log.info("Verificação de líder");
 
         try {
 
-            rest.getForEntity(
-                    "http://" + leader.getHost() + ":" + leader.getPort() + "/group/heartbeat",
-                    Void.class
-            );
+            rest.getForEntity("http://" + leader.getHost() + ":" + leader.getPort() + "/group/heartbeat", Void.class);
             log.info("Líder ativo");
 
         } catch (Exception e) {

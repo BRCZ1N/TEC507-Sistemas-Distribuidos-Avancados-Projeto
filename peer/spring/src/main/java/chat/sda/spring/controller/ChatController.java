@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Queue;
 
 @CrossOrigin(origins = "*")
@@ -21,7 +22,7 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    public ChatController(ChatService chatService){
+    public ChatController(ChatService chatService) {
         this.chatService = chatService;
     }
 
@@ -29,7 +30,7 @@ public class ChatController {
     public ResponseEntity<Void> sendMessage(@Valid @RequestBody SendMessageDTO message) {
 
         try {
-            chatService.sendMessage(new ChatMessage(message.getSenderId(),message.getContent()));
+            chatService.sendMessage(new ChatMessage(message.getSenderId(), message.getContent()));
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
@@ -43,7 +44,7 @@ public class ChatController {
     public ResponseEntity<ProposalMessage> createProposal(@Valid @RequestBody ChatMessageDTO message) {
 
         try {
-            ProposalMessage result = chatService.createProposal(new ChatMessage(message.getSenderId(),message.getId(),message.getContent(),message.getSequenceNumber(),message.getProcessSenderId(),message.getProcessProposerId(),message.getDeliverable()));
+            ProposalMessage result = chatService.createProposal(new ChatMessage(message.getSenderId(), message.getId(), message.getContent(), message.getSequenceNumber(), message.getProcessSenderId(), message.getProcessProposerId(), message.getDeliverable()));
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
@@ -72,7 +73,7 @@ public class ChatController {
 
         try {
             Queue<ChatMessage> message = chatService.getMessages();
-            if(message != null){
+            if (message != null) {
                 return ResponseEntity.ok(message);
             }
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();

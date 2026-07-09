@@ -4,8 +4,6 @@ import chat.sda.spring.dto.AgreementMessageDTO;
 import chat.sda.spring.dto.ProposalMessageDTO;
 import chat.sda.spring.model.AgreementMessage;
 import chat.sda.spring.model.ChatMessage;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import chat.sda.spring.model.Node;
 import chat.sda.spring.model.ProposalMessage;
 import chat.sda.spring.utils.NodeConfig;
@@ -19,11 +17,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 @Service
 public class ChatService {
 
-    private final AtomicLong clock;
+    private final AtomicLong sequence;
     private final NodeConfig nodeConfig;
     private final Map<String, ChatMessage> holdBackQueue;
     private final Map<String, ConcurrentLinkedQueue<ProposalMessage>> proposalMap;
@@ -33,12 +30,9 @@ public class ChatService {
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
     private final RestTemplate rest = new RestTemplate();
     private final ExecutorService executor = Executors.newCachedThreadPool();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
 
     public ChatService(GroupService groupService, NodeConfig nodeConfig) {
-
-        this.clock = new AtomicLong(0);
+        this.sequence = new AtomicLong(0);
         this.holdBackQueue = new ConcurrentHashMap<>();
         this.proposalMap = new ConcurrentHashMap<>();
         this.messageGroups = new ConcurrentHashMap<>();
@@ -52,211 +46,148 @@ public class ChatService {
         message.setProcessSenderId(nodeConfig.getSelf().getId());
 
         ArrayList<Node> currentView = groupService.getGroup();
-
         messageGroups.put(message.getId(), currentView);
-        log.info(
-                "Multicast iniciado -> MessageId: {} | Sender: {} | ViewSize: {} | View: {}",
-                message.getId(),
-                nodeConfig.getSelf().getId(),
-                currentView.size(),
-                currentView.stream().map(Node::getId).toList()
-        );
+
+        log.info("Multicast iniciado -> MessageId: {} | Sender: {} | ViewSize: {} | View: {}", message.getId(), nodeConfig.getSelf().getId(), currentView.size(), currentView.stream().map(Node::getId).toList());
 
         currentView.forEach(node -> sendMessageToNode(node, message));
     }
 
-
-    private synchronized void sendMessageToNode(Node node, ChatMessage message) {
+    private void sendMessageToNode(Node node, ChatMessage message) {
 
         executor.submit(() -> {
-
             try {
 
-
                 ResponseEntity<ProposalMessageDTO> response = rest.postForEntity("http://" + node.getHost() + ":" + node.getPort() + "/chat/proposal", message, ProposalMessageDTO.class);
-                ProposalMessage currentProposal = new ProposalMessage(response.getBody().getMessageId(), response.getBody().getSequenceNumber(), response.getBody().getProcessProposerId());
-                proposalMap.computeIfAbsent(currentProposal.getMessageId(), k -> new ConcurrentLinkedQueue<>()).offer(currentProposal);
-                log.info(
-                        "Proposta recebida -> MessageId: {} | Sequence: {} | ProposerId: {} | TotalRecebidas: {}/{}",
-                        currentProposal.getMessageId(),
-                        currentProposal.getSequenceNumber(),
-                        currentProposal.getProcessProposerId(),
-                        proposalMap.get(currentProposal.getMessageId()).size(),
-                        messageGroups.get(currentProposal.getMessageId()).size()
-                );
-                checkAndSendAgreement(response.getBody().getMessageId());
 
+                ProposalMessage currentProposal = new ProposalMessage(response.getBody().getMessageId(), response.getBody().getSequenceNumber(), response.getBody().getProcessProposerId());
+
+                proposalMap.computeIfAbsent(currentProposal.getMessageId(), k -> new ConcurrentLinkedQueue<>()).offer(currentProposal);
+
+                log.info("Proposta recebida -> MessageId: {} | Sequence: {} | ProposerId: {} | TotalRecebidas: {}/{}", currentProposal.getMessageId(), currentProposal.getSequenceNumber(), currentProposal.getProcessProposerId(), proposalMap.get(currentProposal.getMessageId()).size(), messageGroups.get(currentProposal.getMessageId()).size());
+
+                checkAndSendAgreement(currentProposal.getMessageId());
 
             } catch (Exception e) {
-
-                if (groupService.getLeader() != null && node.getId().equals(groupService.getLeader().getId())) {
-
-                    groupService.initBullyVote();
-
-                } else if (groupService.getLeader() != null) {
-
-                    rest.postForEntity("http://" + groupService.getLeader().getHost() + ":" + groupService.getLeader().getPort() + "/group/node-failure", node, Void.class);
-
-                    log.info("Falha reportada ao líder para o nó {}", node.getId());
-
-                }
-
+                handleNodeFailure(node);
             }
-
         });
-
     }
 
-    public synchronized ProposalMessage createProposal(ChatMessage message) {
-
-        holdBackQueue.put(message.getId(), message);
-        ProposalMessage proposalMessage = new ProposalMessage(message.getId(), clock.incrementAndGet(), nodeConfig.getSelf().getId());
-        log.info(
-                "Proposta criada -> MessageId: {} | Sequence: {} | ProposerId: {} | Node: {}",
-                proposalMessage.getMessageId(),
-                proposalMessage.getSequenceNumber(),
-                proposalMessage.getProcessProposerId(),
-                nodeConfig.getSelf().getId()
-        );
-        log.info(
-                "Mensagem armazenada na HoldBackQueue -> MessageId: {} | SenderId: {} | Conteúdo: {}",
-                message.getId(),
-                message.getSenderId(),
-                message.getContent()
-        );
-
-        return proposalMessage;
+    private void handleNodeFailure(Node node) {
+        if (groupService.getLeader() != null && node.getId().equals(groupService.getLeader().getId())) {
+            groupService.initBullyVote();
+        } else if (groupService.getLeader() != null) {
+            rest.postForEntity("http://" + groupService.getLeader().getHost() + ":" + groupService.getLeader().getPort() + "/group/node-failure", node, Void.class);
+            log.info("Falha reportada ao líder para o nó {}", node.getId());
+        }
     }
 
-    private void checkAndSendAgreement(String messageId) {
+    private synchronized void checkAndSendAgreement(String messageId) {
 
         ConcurrentLinkedQueue<ProposalMessage> proposals = proposalMap.get(messageId);
-
         if (proposals == null) {
             return;
         }
 
-
         ArrayList<Node> messageGroup = messageGroups.get(messageId);
-
         if (messageGroup == null) {
             return;
         }
 
         if (proposals.size() == messageGroup.size()) {
 
-            log.info(
-                    "Todas propostas recebidas -> MessageId: {} | Propostas: {} | ViewEsperada: {}",
-                    messageId,
-                    proposals.size(),
-                    messageGroup.stream().map(Node::getId).toList()
-            );
+            log.info("Todas propostas recebidas -> MessageId: {} | Propostas: {} | ViewEsperada: {}", messageId, proposals.size(), messageGroup.stream().map(Node::getId).toList());
 
             ProposalMessage max = proposals.stream().max(Comparator.comparingLong(ProposalMessage::getSequenceNumber).thenComparingLong(ProposalMessage::getProcessProposerId)).orElseThrow();
+
             AgreementMessage agreement = new AgreementMessage(max.getMessageId(), max.getSequenceNumber(), max.getProcessProposerId());
 
-            log.info(
-                    "Agreement definido -> MessageId: {} | SequenceFinal: {} | ProposerFinal: {}",
-                    agreement.getMessageId(),
-                    agreement.getSequenceNumber(),
-                    agreement.getProcessProposerId()
-            );
+            log.info("Agreement definido -> MessageId: {} | SequenceFinal: {} | ProposerFinal: {}", agreement.getMessageId(), agreement.getSequenceNumber(), agreement.getProcessProposerId());
 
             messageGroup.forEach(node -> sendMessageAgreementToNode(node, agreement));
 
             proposalMap.remove(messageId);
             messageGroups.remove(messageId);
-
         }
-
     }
 
-    private synchronized void sendMessageAgreementToNode(Node node, AgreementMessage agreement) {
+    private void sendMessageAgreementToNode(Node node, AgreementMessage agreement) {
 
         executor.submit(() -> {
-
             try {
 
-                log.info(
-                        "Enviando Agreement -> MessageId: {} | Destino: {} | SequenceFinal: {} | ProposerFinal: {}",
-                        agreement.getMessageId(),
-                        node.getId(),
-                        agreement.getSequenceNumber(),
-                        agreement.getProcessProposerId()
-                );
+                log.info("Enviando Agreement -> MessageId: {} | Destino: {} | SequenceFinal: {} | ProposerFinal: {}", agreement.getMessageId(), node.getId(), agreement.getSequenceNumber(), agreement.getProcessProposerId());
 
                 rest.postForEntity("http://" + node.getHost() + ":" + node.getPort() + "/chat/agreement", agreement, Void.class);
 
             } catch (Exception e) {
-
-                if (groupService.getLeader() != null && node.getId().equals(groupService.getLeader().getId())) {
-
-                    groupService.initBullyVote();
-
-                } else if (groupService.getLeader() != null) {
-
-                    rest.postForEntity("http://" + groupService.getLeader().getHost() + ":" + groupService.getLeader().getPort() + "/group/node-failure", node, Void.class);
-
-                    log.info("Falha reportada ao líder para o nó {}", node.getId());
-
-                }
-
+                handleNodeFailure(node);
             }
-
         });
+    }
 
+    public synchronized ProposalMessage createProposal(ChatMessage message) {
+
+        long propNum = sequence.incrementAndGet();
+
+        ProposalMessage proposalMessage = new ProposalMessage(message.getId(), propNum, nodeConfig.getSelf().getId());
+
+        message.setSequenceNumber(propNum);
+        message.setProcessProposerId(nodeConfig.getSelf().getId());
+
+        holdBackQueue.put(message.getId(), message);
+
+        log.info("Proposta criada -> MessageId: {} | Sequence: {} | ProposerId: {} | Node: {}", proposalMessage.getMessageId(), proposalMessage.getSequenceNumber(), proposalMessage.getProcessProposerId(), nodeConfig.getSelf().getId());
+        log.info("Mensagem armazenada na HoldBackQueue -> MessageId: {} | SenderId: {} | Conteúdo: {}", message.getId(), message.getSenderId(), message.getContent());
+
+        return proposalMessage;
     }
 
     public synchronized void receiveAgreement(AgreementMessageDTO agreement) {
 
-        clock.updateAndGet(current -> Math.max(current, agreement.getSequenceNumber()) + 1);
-        ChatMessage refreshMessage = holdBackQueue.get(agreement.getMessageId());
+        sequence.updateAndGet(current -> Math.max(current, agreement.getSequenceNumber()));
 
+        ChatMessage refreshMessage = holdBackQueue.get(agreement.getMessageId());
         if (refreshMessage == null) {
+
+            log.warn("Agreement recebido para mensagem desconhecida -> MessageId: {}", agreement.getMessageId());
             return;
         }
 
         refreshMessage.setSequenceNumber(agreement.getSequenceNumber());
         refreshMessage.setProcessProposerId(agreement.getProcessProposerId());
         refreshMessage.setDeliverable(true);
-        log.info(
-                "Agreement recebido -> MessageId: {} | SequenceFinal: {} | ProposerFinal: {}",
-                agreement.getMessageId(),
-                agreement.getSequenceNumber(),
-                agreement.getProcessProposerId()
-        );
-        scheduler.schedule(this::refreshMessages, 100, TimeUnit.MILLISECONDS);
 
+        log.info("Agreement recebido -> MessageId: {} | SequenceFinal: {} | ProposerFinal: {}", agreement.getMessageId(), agreement.getSequenceNumber(), agreement.getProcessProposerId());
+
+        refreshMessages();
     }
 
     public synchronized void refreshMessages() {
 
-        Optional<ChatMessage> next = holdBackQueue.values().stream().filter(ChatMessage::getDeliverable).min(Comparator.comparingLong(ChatMessage::getSequenceNumber).thenComparingLong(ChatMessage::getProcessProposerId));
+        while (true) {
 
-        if (next.isPresent()) {
+            Optional<ChatMessage> headOpt = holdBackQueue.values().stream().min(Comparator.comparingLong(ChatMessage::getSequenceNumber).thenComparingLong(ChatMessage::getProcessProposerId));
 
-            ChatMessage message = next.get();
+            if (headOpt.isEmpty()) {
+                break;
+            }
 
-            deliveredMessages.add(message);
-            holdBackQueue.remove(message.getId());
+            ChatMessage head = headOpt.get();
 
-            log.info(
-                    "Mensagem entregue -> MessageId: {} | Conteúdo: {} | Sequence: {} | Sender: {} | Proposer: {}",
-                    message.getId(),
-                    message.getContent(),
-                    message.getSequenceNumber(),
-                    message.getSenderId(),
-                    message.getProcessProposerId()
-            );
+            if (!head.getDeliverable()) {
+                break;
+            }
 
+            holdBackQueue.remove(head.getId());
+            deliveredMessages.add(head);
+
+            log.info("Mensagem entregue -> MessageId: {} | Conteúdo: {} | Sequence: {} | Sender: {} | Proposer: {}", head.getId(), head.getContent(), head.getSequenceNumber(), head.getSenderId(), head.getProcessProposerId());
         }
-
     }
 
     public synchronized Queue<ChatMessage> getMessages() {
-
         return deliveredMessages;
-
     }
-
 }

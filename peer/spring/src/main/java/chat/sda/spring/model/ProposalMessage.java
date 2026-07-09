@@ -32,6 +32,7 @@ public class ProposalMessage {
     public Long getProcessProposerId() {
         return processProposerId;
     }
+
     public void setProcessProposerId(Long processProposerId) {
         this.processProposerId = processProposerId;
     }

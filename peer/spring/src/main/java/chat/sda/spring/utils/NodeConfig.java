@@ -29,7 +29,7 @@ public class NodeConfig {
 
     @EventListener(WebServerInitializedEvent.class)
     public void onWebServerReady(WebServerInitializedEvent event) throws UnknownHostException {
-        
+
         int port = event.getWebServer().getPort();
 
         if (host == null || host.isBlank()) {
