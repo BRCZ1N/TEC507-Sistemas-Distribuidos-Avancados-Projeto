@@ -4,13 +4,16 @@ WORKDIR /app
 
 COPY . .
 
-RUN echo "PWD:"
-RUN pwd
+WORKDIR /app/spring
 
-RUN echo "FILES:"
-RUN ls -la
+RUN mvn clean package -DskipTests
 
-RUN echo "POMS:"
-RUN find / -name pom.xml 2>/dev/null || true
+FROM eclipse-temurin:17-jre-jammy
 
-RUN mvn clean package
+WORKDIR /app
+
+COPY --from=build /app/spring/target/*.jar app.jar
+
+EXPOSE 60000
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
