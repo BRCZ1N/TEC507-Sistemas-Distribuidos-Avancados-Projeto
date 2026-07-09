@@ -2,9 +2,9 @@ FROM maven:3.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-COPY . .
+COPY peer/spring .
 
-RUN mvn clean package -DskipTests
+RUN mvn clean package
 
 FROM eclipse-temurin:17-jre-jammy
 
