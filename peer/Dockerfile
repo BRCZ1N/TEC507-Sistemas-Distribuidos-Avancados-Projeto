@@ -2,7 +2,11 @@ FROM maven:3.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-COPY peer/spring .
+COPY . .
+
+RUN pwd
+RUN ls -la
+RUN find . -name "pom.xml"
 
 RUN mvn clean package
 
