@@ -14,10 +14,10 @@ type Peer = {
 };
 
 
-const USE_HTTPS = true;
+const USE_HTTPS = false;
 
 
-const SEQUENCER_URL = "https://tec507-sistemas-distribuidos-avancados.onrender.com";
+const SEQUENCER_URL = "http://192.168.1.107:60001";
 
 
 const buildUrl = (host: string, port: number | null) => {
