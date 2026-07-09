@@ -289,6 +289,10 @@ public class ChatService {
 
     private String buildBaseUrl(Node node) {
 
+        if (node.getHost().contains("onrender.com")) {
+            return "https://" + node.getHost();
+        }
+
         if (node.getPort() == null) {
             return "https://" + node.getHost();
         }

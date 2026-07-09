@@ -50,15 +50,26 @@ public class NodeConfig {
 
         for (String entry : raw.split(",")) {
 
-            String[] parts = entry.trim().split(":");
+            entry = entry.trim();
+
+            String[] parts = entry.split(":", 3);
 
             Long peerId = Long.valueOf(parts[0]);
-            String peerHost = parts[1];
 
+            String peerHost;
             Integer peerPort = null;
 
-            if (parts.length >= 3 && !parts[2].isBlank()) {
-                peerPort = Integer.parseInt(parts[2]);
+            if (parts.length == 2) {
+
+                peerHost = parts[1];
+
+            } else {
+
+                peerHost = parts[1];
+
+                if (!parts[2].isBlank()) {
+                    peerPort = Integer.parseInt(parts[2]);
+                }
             }
 
             result.add(new Node(peerId, peerHost, peerPort));
