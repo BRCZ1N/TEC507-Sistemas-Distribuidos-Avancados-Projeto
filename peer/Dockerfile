@@ -4,18 +4,13 @@ WORKDIR /app
 
 COPY . .
 
+RUN echo "PWD:"
 RUN pwd
+
+RUN echo "FILES:"
 RUN ls -la
-RUN find . -name "pom.xml"
+
+RUN echo "POMS:"
+RUN find / -name pom.xml 2>/dev/null || true
 
 RUN mvn clean package
-
-FROM eclipse-temurin:17-jre-jammy
-
-WORKDIR /app
-
-COPY --from=build /app/target/*.jar app.jar
-
-EXPOSE 60000
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
