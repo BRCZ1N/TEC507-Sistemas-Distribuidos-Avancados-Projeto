@@ -55,8 +55,6 @@ export default function App() {
         return id;
     });
 
-
-
     const getPeers = async () => {
 
         try {
@@ -73,8 +71,6 @@ export default function App() {
         }
 
     };
-
-
 
     const fetchMessages = async () => {
 
@@ -97,7 +93,6 @@ export default function App() {
                     data[data.length - 1]?.id !==
                     messages[messages.length - 1]?.id;
 
-
                 if(changed){
                     setMessages(data);
                 }
@@ -115,7 +110,6 @@ export default function App() {
         if(!content.trim() || !selectedPeer)
             return;
 
-
         try {
 
             await fetch(
@@ -132,7 +126,6 @@ export default function App() {
                 }
             );
 
-
             setContent("");
 
             fetchMessages();
@@ -144,33 +137,23 @@ export default function App() {
 
     };
 
-
-
     useEffect(()=>{
         getPeers();
     },[]);
-
-
 
     useEffect(()=>{
 
         if(!selectedPeer)
             return;
 
-
         fetchMessages();
-
 
         const timer =
             setInterval(fetchMessages,1200);
 
-
         return ()=>clearInterval(timer);
 
-
     },[selectedPeer,messages]);
-
-
 
     useEffect(()=>{
 
@@ -181,17 +164,10 @@ export default function App() {
             });
 
         }
-
-
         previousMessageCount.current =
             messages.length;
 
-
     },[messages]);
-
-
-
-
 
     return (
 
@@ -256,19 +232,11 @@ export default function App() {
                                 <Typography variant="caption">
                                     {peer.id}
                                 </Typography>
-
-
                             </Box>
-
                         ))
                     }
-
                 </Box>
-
-
             </Box>
-
-
             <Box
                 sx={{
                     flex:1,
@@ -277,10 +245,7 @@ export default function App() {
                     p:2
                 }}
             >
-
-
                 <Paper
-
                     sx={{
                         flex:1,
                         minWidth:0,
@@ -291,9 +256,7 @@ export default function App() {
                         borderRadius:2,
                         background:"#121212"
                     }}
-
                 >
-
                     <Box
                         sx={{
                             p:2,
@@ -301,7 +264,6 @@ export default function App() {
                             borderBottom:"1px solid #222"
                         }}
                     >
-
                         <Typography
                             variant="caption"
                             sx={{
@@ -311,8 +273,6 @@ export default function App() {
                         >
                             Total Order Multicast Chat
                         </Typography>
-
-
                         <Typography
                             variant="caption"
                             sx={{
@@ -322,8 +282,6 @@ export default function App() {
                         >
                             Usuário: {senderId}
                         </Typography>
-
-
                         <Typography
                             variant="caption"
                             sx={{
@@ -333,11 +291,7 @@ export default function App() {
                         >
                             Peer: {selectedPeer?.id ?? "nenhum"}
                         </Typography>
-
-
                     </Box>
-
-
                     <Box
                         sx={{
                             flex:1,
@@ -349,10 +303,8 @@ export default function App() {
                             gap:1
                         }}
                     >
-
                         {
                             messages.map(msg=>(
-
                                 <Box
                                     key={msg.id}
                                     sx={{
@@ -360,7 +312,6 @@ export default function App() {
                                         wordBreak:"break-word"
                                     }}
                                 >
-
                                     <Box
                                         sx={{
                                             p:1.5,
@@ -369,7 +320,6 @@ export default function App() {
                                             color:"white"
                                         }}
                                     >
-
                                         <Typography
                                             variant="caption"
                                             sx={{
@@ -378,30 +328,16 @@ export default function App() {
                                         >
                                             {msg.senderId}
                                         </Typography>
-
-
                                         <Typography variant="body2">
                                             {msg.content}
                                         </Typography>
-
-
                                     </Box>
-
-
                                 </Box>
-
-
                             ))
                         }
-
-
                         <div ref={bottomRef}/>
-
-
                     </Box>
-
                     <Box
-
                         sx={{
                             display:"flex",
                             gap:1,
@@ -410,50 +346,33 @@ export default function App() {
                             borderTop:"1px solid #222",
                             background:"#1a1a1a"
                         }}
-
                     >
-
-
                         <TextField
-
                             fullWidth
-
                             value={content}
-
                             onChange={
                                 e=>setContent(e.target.value)
                             }
-
                             onKeyDown={
                                 e=>{
                                     if(e.key==="Enter")
                                         sendMessage();
                                 }
                             }
-
                             sx={{
-
                                 input:{
                                     color:"white"
                                 },
-
                                 "& .MuiOutlinedInput-root":{
                                     color:"white",
-
                                     "& fieldset":{
                                         borderColor:"#333"
                                     }
-
                                 }
-
                             }}
-
                         />
 
-
-
                         <Button
-
                             variant="contained"
 
                             onClick={sendMessage}
@@ -462,24 +381,12 @@ export default function App() {
                                 flex:"0 0 auto",
                                 background:"#2563eb"
                             }}
-
                         >
                             Send
-
                         </Button>
-
-
                     </Box>
-
-
-
                 </Paper>
-
-
             </Box>
-
-
-
         </Box>
 
     );
