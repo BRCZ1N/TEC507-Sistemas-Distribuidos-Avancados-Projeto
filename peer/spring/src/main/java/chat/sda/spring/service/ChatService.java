@@ -1,6 +1,7 @@
 package chat.sda.spring.service;
 
 import chat.sda.spring.dto.AgreementMessageDTO;
+import chat.sda.spring.dto.ChatMessageDTO;
 import chat.sda.spring.dto.ProposalMessageDTO;
 import chat.sda.spring.model.AgreementMessage;
 import chat.sda.spring.model.ChatMessage;
@@ -40,7 +41,7 @@ public class ChatService {
         this.timeoutTasks = new ConcurrentHashMap<>();
     }
 
-    public synchronized void sendMessage(ChatMessage message) {
+    public synchronized void sendMessage(ChatMessage message, Long artificialDelay) {
 
         message.setProcessSenderId(nodeConfig.getSelf().getId());
 
@@ -61,17 +62,17 @@ public class ChatService {
                 group.stream().map(Node::getId).toList()
         );
 
-        group.forEach(node -> sendMessageToNode(node, message, group.size()));
+        group.forEach(node -> sendMessageToNode(node, message, group.size(),artificialDelay));
     }
 
-    private void sendMessageToNode(Node node, ChatMessage message, int groupSize) {
+    private void sendMessageToNode(Node node, ChatMessage message, int groupSize, Long artificialDelay) {
 
         executor.submit(() -> {
             try {
-
+                ChatMessageDTO dto = new ChatMessageDTO(message.getSenderId(),message.getId(),message.getContent(),message.getSequenceNumber(),message.getProcessSenderId(),message.getProcessProposerId(),message.getDeliverable(),artificialDelay);
                 ResponseEntity<ProposalMessageDTO> response = rest.postForEntity(
                         buildBaseUrl(node) + "/chat/proposal",
-                        message,
+                        dto,
                         ProposalMessageDTO.class
                 );
 
@@ -199,8 +200,16 @@ public class ChatService {
         });
     }
 
-    public synchronized ProposalMessage createProposal(ChatMessage message) {
+    public synchronized ProposalMessage createProposal(ChatMessage message, Long artificialDelay) {
 
+        if (nodeConfig.isDelayEnabled() && artificialDelay != null) {
+            try {
+                Thread.sleep(artificialDelay);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Thread interrompida durante atraso artificial");
+            }
+        }
         long propNum = sequence.incrementAndGet();
 
         ProposalMessage proposalMessage = new ProposalMessage(

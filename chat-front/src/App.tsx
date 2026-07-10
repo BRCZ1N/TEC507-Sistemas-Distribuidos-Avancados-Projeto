@@ -13,12 +13,9 @@ type Peer = {
     port: number | null;
 };
 
-
 const USE_HTTPS = false;
 
-
 const SEQUENCER_URL = "http://192.168.1.107:60001";
-
 
 const buildUrl = (host: string, port: number | null) => {
 
@@ -29,12 +26,18 @@ const buildUrl = (host: string, port: number | null) => {
     return `http://${host}:${port}`;
 };
 
+
 export default function App() {
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [peers, setPeers] = useState<Peer[]>([]);
     const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
+
     const [content, setContent] = useState("");
+
+    // Novo campo de delay em segundos
+    const [delaySeconds, setDelaySeconds] = useState<number>(0);
+
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const previousMessageCount = useRef(0);
@@ -55,6 +58,7 @@ export default function App() {
         return id;
     });
 
+
     const getPeers = async () => {
 
         try {
@@ -71,6 +75,7 @@ export default function App() {
         }
 
     };
+
 
     const fetchMessages = async () => {
 
@@ -93,6 +98,7 @@ export default function App() {
                     data[data.length - 1]?.id !==
                     messages[messages.length - 1]?.id;
 
+
                 if(changed){
                     setMessages(data);
                 }
@@ -105,10 +111,12 @@ export default function App() {
 
     };
 
+
     const sendMessage = async () => {
 
         if(!content.trim() || !selectedPeer)
             return;
+
 
         try {
 
@@ -116,15 +124,23 @@ export default function App() {
                 `${buildUrl(selectedPeer.host, selectedPeer.port)}/chat/message`,
                 {
                     method:"POST",
+
                     headers:{
                         "Content-Type":"application/json"
                     },
+
                     body:JSON.stringify({
+
                         senderId,
-                        content
+
+                        content,
+
+                        // Conversão segundos -> milissegundos
+                        artificialDelay: delaySeconds * 1000
                     })
                 }
             );
+
 
             setContent("");
 
@@ -132,28 +148,39 @@ export default function App() {
 
 
         } catch(err){
+
             console.log(err);
+
         }
 
     };
 
+
     useEffect(()=>{
+
         getPeers();
+
     },[]);
+
 
     useEffect(()=>{
 
         if(!selectedPeer)
             return;
 
+
         fetchMessages();
+
 
         const timer =
             setInterval(fetchMessages,1200);
 
+
         return ()=>clearInterval(timer);
 
+
     },[selectedPeer,messages]);
+
 
     useEffect(()=>{
 
@@ -164,8 +191,11 @@ export default function App() {
             });
 
         }
+
+
         previousMessageCount.current =
             messages.length;
+
 
     },[messages]);
 
@@ -197,7 +227,7 @@ export default function App() {
             >
 
                 <Typography variant="caption">
-                    Peers Online
+                    Peers
                 </Typography>
 
 
@@ -215,11 +245,16 @@ export default function App() {
 
                             <Box
                                 key={peer.id}
-                                onClick={()=>setSelectedPeer(peer)}
+
+                                onClick={()=>
+                                    setSelectedPeer(peer)
+                                }
+
                                 sx={{
                                     p:1,
                                     cursor:"pointer",
                                     borderRadius:1,
+
                                     background:
                                         selectedPeer?.id===peer.id
                                             ?
@@ -232,11 +267,17 @@ export default function App() {
                                 <Typography variant="caption">
                                     {peer.id}
                                 </Typography>
+
                             </Box>
+
                         ))
                     }
+
                 </Box>
+
             </Box>
+
+
             <Box
                 sx={{
                     flex:1,
@@ -245,6 +286,7 @@ export default function App() {
                     p:2
                 }}
             >
+
                 <Paper
                     sx={{
                         flex:1,
@@ -257,6 +299,8 @@ export default function App() {
                         background:"#121212"
                     }}
                 >
+
+
                     <Box
                         sx={{
                             p:2,
@@ -264,34 +308,44 @@ export default function App() {
                             borderBottom:"1px solid #222"
                         }}
                     >
+
                         <Typography
                             variant="caption"
                             sx={{
-                                display: "block",
-                                color: "#fff"
+                                display:"block",
+                                color:"#fff"
                             }}
                         >
                             Total Order Multicast Chat
                         </Typography>
+
+
                         <Typography
                             variant="caption"
                             sx={{
-                                display: "block",
-                                color: "#888"
+                                display:"block",
+                                color:"#888"
                             }}
                         >
                             Usuário: {senderId}
                         </Typography>
+
+
                         <Typography
                             variant="caption"
                             sx={{
-                                display: "block",
-                                color: "#888"
+                                display:"block",
+                                color:"#888"
                             }}
                         >
                             Peer: {selectedPeer?.id ?? "nenhum"}
                         </Typography>
+
+
                     </Box>
+
+
+
                     <Box
                         sx={{
                             flex:1,
@@ -303,15 +357,19 @@ export default function App() {
                             gap:1
                         }}
                     >
+
                         {
                             messages.map(msg=>(
+
                                 <Box
                                     key={msg.id}
+
                                     sx={{
                                         maxWidth:"80%",
                                         wordBreak:"break-word"
                                     }}
                                 >
+
                                     <Box
                                         sx={{
                                             p:1.5,
@@ -320,6 +378,7 @@ export default function App() {
                                             color:"white"
                                         }}
                                     >
+
                                         <Typography
                                             variant="caption"
                                             sx={{
@@ -328,15 +387,29 @@ export default function App() {
                                         >
                                             {msg.senderId}
                                         </Typography>
+
+
                                         <Typography variant="body2">
                                             {msg.content}
                                         </Typography>
+
+
                                     </Box>
+
+
                                 </Box>
+
                             ))
                         }
+
+
                         <div ref={bottomRef}/>
+
+
                     </Box>
+
+
+
                     <Box
                         sx={{
                             display:"flex",
@@ -347,30 +420,93 @@ export default function App() {
                             background:"#1a1a1a"
                         }}
                     >
+
+
                         <TextField
                             fullWidth
+
                             value={content}
+
                             onChange={
                                 e=>setContent(e.target.value)
                             }
+
                             onKeyDown={
                                 e=>{
                                     if(e.key==="Enter")
                                         sendMessage();
                                 }
                             }
+
+
                             sx={{
                                 input:{
                                     color:"white"
                                 },
+
                                 "& .MuiOutlinedInput-root":{
                                     color:"white",
+
                                     "& fieldset":{
                                         borderColor:"#333"
                                     }
                                 }
                             }}
                         />
+
+
+
+                        <TextField
+
+                            type="number"
+
+                            label="Delay (s)"
+
+                            value={delaySeconds}
+
+
+                            onChange={e=>{
+
+                                const value =
+                                    Number(e.target.value);
+
+
+                                if(value >= 0 && value <= 30){
+
+                                    setDelaySeconds(value);
+
+                                }
+
+                            }}
+
+
+                            sx={{
+                                width:120,
+
+
+                                input:{
+                                    color:"white"
+                                },
+
+
+                                "& .MuiOutlinedInput-root":{
+                                    color:"white",
+
+                                    "& fieldset":{
+                                        borderColor:"#333"
+                                    }
+                                },
+
+
+                                "& .MuiInputLabel-root":{
+                                    color:"#888"
+                                }
+
+                            }}
+
+                        />
+
+
 
                         <Button
                             variant="contained"
@@ -382,12 +518,23 @@ export default function App() {
                                 background:"#2563eb"
                             }}
                         >
+
                             Send
+
                         </Button>
+
+
                     </Box>
+
+
                 </Paper>
+
+
             </Box>
+
+
         </Box>
 
     );
+
 }

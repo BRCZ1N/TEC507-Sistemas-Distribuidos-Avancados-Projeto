@@ -9,10 +9,12 @@ public class SendMessageDTO {
     private String content;
     @NotNull
     private String senderId;
+    private Long artificialDelay;
 
-    public SendMessageDTO(String content, String senderId) {
+    public SendMessageDTO(String content, String senderId, Long artificialDelay) {
         this.content = content;
         this.senderId = senderId;
+        this.artificialDelay = artificialDelay;
     }
 
     public String getContent() {
@@ -29,5 +31,13 @@ public class SendMessageDTO {
 
     public void setSenderId(String senderId) {
         this.senderId = senderId;
+    }
+
+    public Long getArtificialDelay() {
+        return artificialDelay;
+    }
+
+    public void setArtificialDelay(Long artificialDelay) {
+        this.artificialDelay = artificialDelay;
     }
 }

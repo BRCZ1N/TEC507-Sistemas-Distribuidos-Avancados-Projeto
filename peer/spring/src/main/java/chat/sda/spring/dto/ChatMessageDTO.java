@@ -16,14 +16,17 @@ public class ChatMessageDTO {
     private Long processProposerId;
     @NotNull
     private Boolean isDeliverable;
+    private Long artificialDelay;
 
-
-    public Boolean getDeliverable() {
-        return isDeliverable;
-    }
-
-    public void setDeliverable(Boolean deliverable) {
-        isDeliverable = deliverable;
+    public ChatMessageDTO(String senderId, String id, String content, Long sequenceNumber, Long processSenderId, Long processProposerId, Boolean isDeliverable, Long artificialDelay) {
+        this.senderId = senderId;
+        this.id = id;
+        this.content = content;
+        this.sequenceNumber = sequenceNumber;
+        this.processSenderId = processSenderId;
+        this.processProposerId = processProposerId;
+        this.isDeliverable = isDeliverable;
+        this.artificialDelay = artificialDelay;
     }
 
     public String getSenderId() {
@@ -72,5 +75,21 @@ public class ChatMessageDTO {
 
     public void setProcessProposerId(Long processProposerId) {
         this.processProposerId = processProposerId;
+    }
+
+    public Boolean getDeliverable() {
+        return isDeliverable;
+    }
+
+    public void setDeliverable(Boolean deliverable) {
+        isDeliverable = deliverable;
+    }
+
+    public Long getArtificialDelay() {
+        return artificialDelay;
+    }
+
+    public void setArtificialDelay(Long artificialDelay) {
+        this.artificialDelay = artificialDelay;
     }
 }

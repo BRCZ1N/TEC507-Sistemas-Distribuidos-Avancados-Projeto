@@ -24,6 +24,9 @@ public class NodeConfig {
     @Value("${node.peers}")
     private String peersRaw;
 
+    @Value("${simulation.delay.enabled}")
+    private Boolean delay;
+
     private Node self;
     private List<Node> peers;
 
@@ -84,5 +87,9 @@ public class NodeConfig {
 
     public List<Node> getPeers() {
         return Collections.unmodifiableList(peers);
+    }
+
+    public Boolean isDelayEnabled() {
+        return this.delay;
     }
 }

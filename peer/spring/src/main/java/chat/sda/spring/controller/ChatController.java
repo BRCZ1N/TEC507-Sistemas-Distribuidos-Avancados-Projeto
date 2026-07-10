@@ -32,7 +32,7 @@ public class ChatController {
     public ResponseEntity<Void> sendMessage(@Valid @RequestBody SendMessageDTO message) {
 
         try {
-            chatService.sendMessage(new ChatMessage(message.getSenderId(), message.getContent()));
+            chatService.sendMessage(new ChatMessage(message.getSenderId(), message.getContent()),message.getArtificialDelay());
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
@@ -46,7 +46,7 @@ public class ChatController {
     public ResponseEntity<ProposalMessage> createProposal(@Valid @RequestBody ChatMessageDTO message) {
 
         try {
-            ProposalMessage result = chatService.createProposal(new ChatMessage(message.getSenderId(), message.getId(), message.getContent(), message.getSequenceNumber(), message.getProcessSenderId(), message.getProcessProposerId(), message.getDeliverable()));
+            ProposalMessage result = chatService.createProposal(new ChatMessage(message.getSenderId(), message.getId(), message.getContent(), message.getSequenceNumber(), message.getProcessSenderId(), message.getProcessProposerId(), message.getDeliverable()),message.getArtificialDelay());
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).build();
